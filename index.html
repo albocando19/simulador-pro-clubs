@@ -187,6 +187,11 @@ textarea{width:100%;min-height:64px;background:var(--sunk);border:1px solid var(
 /* Pestañas */
 .inner{max-width:1180px;margin:0 auto}
 .panel{margin-top:16px}
+.grouptabs{display:flex;gap:8px;margin-bottom:12px}
+.grouptab{background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:8px 22px;cursor:pointer;
+  font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.grouptab:hover{color:var(--ink);border-color:var(--ink)}
+.grouptab.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tabscroll{overflow-x:auto;margin:0 -4px;padding:0 4px;border-bottom:1px solid var(--line)}
 .tabs{display:flex;gap:2px;min-width:max-content}
 .tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px 9px;cursor:pointer;
@@ -553,6 +558,10 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
 <main>
   <div class="inner">
     <div class="arch-head"><h1 id="archName"></h1><p id="archInfo"></p></div>
+    <nav class="grouptabs" role="tablist" aria-label="Grupo">
+      <button type="button" role="tab" id="g-jugador" data-group="jugador" class="grouptab">Jugador</button>
+      <button type="button" role="tab" id="g-club" data-group="club" class="grouptab">Club</button>
+    </nav>
   </div>
   <div class="tabbar" id="tabbar"><div class="inner tabin">
     <div class="tabscroll" id="tabscroll"><nav class="tabs" role="tablist" aria-label="Secciones">
@@ -562,8 +571,8 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       <button type="button" role="tab" id="t-cuerpo" data-tab="cuerpo">Altura y peso <span class="tb num" id="tbBody"></span></button>
       <button type="button" role="tab" id="t-maestrias" data-tab="maestrias">Maestrías <span class="tb num" id="tbMast"></span></button>
       <button type="button" role="tab" id="t-instalaciones" data-tab="instalaciones">Instalaciones <span class="tb num" id="tbFac"></span></button>
-      <button type="button" role="tab" id="t-club" data-tab="club">Estadísticas del club</button>
       <button type="button" role="tab" id="t-builds" data-tab="builds">Mis builds <span class="tb num" id="tbSaves"></span></button>
+      <button type="button" role="tab" id="t-club" data-tab="club">Estadísticas del club</button>
       <button type="button" role="tab" id="t-goles" data-tab="goles">Goles <span class="tb num" id="tbGoles"></span></button>
     </nav></div>
     <div class="mobap num" id="mobAP" aria-live="polite"></div>
@@ -1488,11 +1497,20 @@ $("copySum").addEventListener("click",()=>{const a=arch(),bm=bodyMods(),v={};Obj
 
 // Pestañas
 const TABS=["resumen","atributos","playstyles","cuerpo","maestrias","instalaciones","club","builds","goles"];
+const GROUPOF={resumen:"jugador",atributos:"jugador",playstyles:"jugador",cuerpo:"jugador",maestrias:"jugador",instalaciones:"jugador",builds:"jugador",club:"club",goles:"club"};
+let currentGroup="jugador";
+function renderGroupNav(){document.querySelectorAll("[data-group]").forEach(b=>{const on=b.dataset.group===currentGroup;b.setAttribute("aria-selected",on);b.classList.toggle("on",on);});
+  TABS.forEach(t=>{const b=$("t-"+t);if(b)b.hidden=GROUPOF[t]!==currentGroup;});
+  tabFade();}
+document.querySelectorAll("[data-group]").forEach(b=>b.addEventListener("click",()=>{
+  const g=b.dataset.group;currentGroup=g;try{localStorage.setItem("pc27.group",g);}catch(e){}renderGroupNav();
+  const first=TABS.find(t=>GROUPOF[t]===g);showTab(first,true);}));
 let tabsReady=false;
 function tabFade(){const sc=$("tabscroll");if(!sc)return;sc.classList.toggle("more-l",sc.scrollLeft>4);sc.classList.toggle("more-r",sc.scrollLeft+sc.clientWidth<sc.scrollWidth-4);}
 $("tabscroll").addEventListener("scroll",tabFade,{passive:true});window.addEventListener("resize",tabFade);
 window.addEventListener("hashchange",()=>{const t=(location.hash||"").replace("#","");if(TABS.includes(t))showTab(t);});
 function showTab(t,focus){if(!TABS.includes(t))t="atributos";
+  if(GROUPOF[t]&&GROUPOF[t]!==currentGroup){currentGroup=GROUPOF[t];try{localStorage.setItem("pc27.group",currentGroup);}catch(e){}renderGroupNav();}
   TABS.forEach(x=>{$("p-"+x).hidden=x!==t;const b=$("t-"+x);b.setAttribute("aria-selected",x===t);b.tabIndex=x===t?0:-1;b.classList.toggle("on",x===t);});
   if(focus)$("t-"+t).focus();try{localStorage.setItem("pc27.tab",t);}catch(e){}
   // En celular: la pestaña activa se acomoda a la vista y, si la barra está pegada arriba, vuelvo al principio del panel
@@ -1504,8 +1522,9 @@ function showTab(t,focus){if(!TABS.includes(t))t="atributos";
   if(t==="club")renderEaTab();
   if(t==="goles")renderGolesGate();}
 document.querySelectorAll("[data-tab]").forEach(b=>{b.addEventListener("click",()=>showTab(b.dataset.tab));
-  b.addEventListener("keydown",e=>{const i=TABS.indexOf(b.dataset.tab);if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();
-    showTab(TABS[(i+(e.key==="ArrowRight"?1:TABS.length-1))%TABS.length],true);}});});
+  b.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();
+    const list=TABS.filter(t=>GROUPOF[t]===GROUPOF[b.dataset.tab]);const i=list.indexOf(b.dataset.tab);
+    showTab(list[(i+(e.key==="ArrowRight"?1:list.length-1))%list.length],true);}});});
 $("psOnly").addEventListener("change",e=>{S.psOnly=e.target.checked;update();});
 
 // Builds guardados
@@ -1715,6 +1734,7 @@ $("level").addEventListener("input",e=>{S.level=+e.target.value;update();});
 let armed=false;$("resetBtn").addEventListener("click",e=>{if(!armed){armed=true;e.target.textContent="¿Seguro?";setTimeout(()=>{armed=false;e.target.textContent="Reiniciar";},2500);return;}
   armed=false;e.target.textContent="Reiniciar";S=fresh(S.arch,S.level);renderGroups();update();toast("Atributos en valores iniciales");});
 renderFForm();renderGroups();update();renderSaves();initCloud();
+renderGroupNav();
 (function(){let t=(location.hash||"").replace("#","");if(!TABS.includes(t)){try{t=localStorage.getItem("pc27.tab")||"";}catch(e){t="";}}showTab(t);})();
 })();
 </script>
