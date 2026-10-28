@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1411">
+<title>Simulador Pro Clubs 27</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: banda fija con el presupuesto de AP arriba; debajo, planilla de atributos a la izquierda y panel de estrellas/especializaciones/builds a la derecha */
+:root{
+  --bg:#edf0ec; --surface:#ffffff; --sunk:#f5f7f4; --ink:#16201a; --muted:#5a665f; --line:#d4dad3;
+  --accent:#1d48c4; --accent-ink:#ffffff; --ok:#1e7a3e; --warn:#b4231a;
+  --t0:#0e8a8c; --t1:#4a962a; --t2:#c98410; --t3:#c03a2c;
+  --q4:#1e7a3e; --q3:#5c8f1c; --q2:#b47508; --q1:#b4231a; --cfac:#7046c0;
+  --gold1:#f6d36b; --gold2:#b8860b; --goldink:#3a2a00; --grey1:#e4e8e3; --grey2:#9aa49d; --greyink:#2a332d;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1411; --surface:#161f1a; --sunk:#111915; --ink:#e6ebe7; --muted:#97a49c; --line:#2a352f;
+  --accent:#7f9cff; --accent-ink:#0e1411; --ok:#5fcf86; --warn:#ff7b6e;
+  --t0:#3fc3c5; --t1:#7fcb5a; --t2:#f0b13e; --t3:#f06d5f;
+  --q4:#5fcf86; --q3:#a6d96a; --q2:#f0b13e; --q1:#ff7b6e; --cfac:#b892ff;
+  --gold1:#f6d36b; --gold2:#a87a08; --goldink:#2a1e00; --grey1:#56615a; --grey2:#2f3933; --greyink:#e6ebe7; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0e1411; --surface:#161f1a; --sunk:#111915; --ink:#e6ebe7; --muted:#97a49c; --line:#2a352f;
+  --accent:#7f9cff; --accent-ink:#0e1411; --ok:#5fcf86; --warn:#ff7b6e;
+  --t0:#3fc3c5; --t1:#7fcb5a; --t2:#f0b13e; --t3:#f06d5f;
+  --q4:#5fcf86; --q3:#a6d96a; --q2:#f0b13e; --q1:#ff7b6e; --cfac:#b892ff;
+  --gold1:#f6d36b; --gold2:#a87a08; --goldink:#2a1e00; --grey1:#56615a; --grey2:#2f3933; --greyink:#e6ebe7; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
+.bar-in{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:12px 24px;align-items:center}
+.brand{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.01em;line-height:1;text-transform:uppercase}
+.brand small{display:block;font-family:var(--body);font-weight:500;font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-top:4px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.field{display:flex;flex-direction:column;gap:2px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+.lvl{display:flex;align-items:center;gap:8px}
+.lvl input[type=range]{width:140px;accent-color:var(--accent)}
+.lvl output{font-family:var(--display);font-weight:700;font-size:22px;min-width:2ch}
+.budget{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:220px}
+.budget .fig{font-family:var(--display);font-weight:700;font-size:30px;line-height:1}
+.budget .fig span{font-size:16px;color:var(--muted);font-weight:600}
+.meter{width:100%;height:8px;border-radius:4px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);transition:width .15s}
+.meter.over i{background:var(--warn)}
+.budget .note{font-size:12px;color:var(--muted)}
+.budget .note b{color:var(--ink)}
+.over-txt{color:var(--warn)!important;font-weight:600}
+
+main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.arch-head{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;margin-bottom:14px}
+.arch-head h1{font-family:var(--display);font-size:34px;font-weight:700;margin:0;text-transform:uppercase;line-height:1}
+.arch-head p{margin:0;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
+.d0{background:var(--t0)}.d1{background:var(--t1)}.d2{background:var(--t2)}.d3{background:var(--t3)}
+
+.group{background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-bottom:14px;overflow:hidden}
+.group h2{margin:0;padding:8px 14px;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  display:flex;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--sunk)}
+.group h2 span{color:var(--muted);font-family:var(--body);font-size:13px;letter-spacing:0;text-transform:none;font-weight:500}
+.row{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) auto 64px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .name{display:flex;align-items:center;gap:8px;min-width:0}
+.row .name b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .name .bonus{font-size:11px;font-weight:600;color:var(--ok);white-space:nowrap}
+.track{position:relative;height:28px;display:flex;align-items:center}
+.track .rail{position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--sunk);border:1px solid var(--line)}
+.track .base,.track .buy{position:absolute;height:6px;border-radius:3px}
+.track .base{background:var(--line)}
+.track .buy{opacity:.9}
+.track input{position:relative;width:100%;margin:0;background:transparent;-webkit-appearance:none;appearance:none;height:28px;cursor:pointer}
+.track input::-webkit-slider-runnable-track{height:6px;background:transparent}
+.track input::-moz-range-track{height:6px;background:transparent}
+.track input::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--surface);border:2px solid var(--ink);margin-top:-5px}
+.track input::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--surface);border:2px solid var(--ink)}
+.scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:-4px}
+.stepper{display:flex;align-items:center;gap:4px}
+.stepper button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--sunk);cursor:pointer;font-weight:700;font-size:16px;line-height:1}
+.stepper button:hover:not(:disabled){border-color:var(--ink)}
+.stepper button:disabled{opacity:.35;cursor:default}
+.stepper .v{font-family:var(--display);font-weight:700;font-size:24px;min-width:2.2ch;text-align:center}
+.cost{text-align:right;font-size:13px}
+.cost b{display:block;font-weight:600}
+.cost small{color:var(--muted);font-size:11px}
+
+aside{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px}
+.card h3{margin:0 0 10px;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.stars{display:grid;gap:10px}
+.starrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.starrow .lbl{font-weight:600}
+.starrow .lbl small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.pips{letter-spacing:2px;color:var(--t2);font-size:15px}
+.pips .off{color:var(--line)}
+.spec{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.spec:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.spec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.spec-h b{font-family:var(--display);font-size:18px;font-weight:600}
+.chip{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:var(--ok)}
+.chip.no{color:var(--muted)}
+.spec .ps{font-size:13px;color:var(--muted);margin:2px 0 6px}
+.req{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px}
+.req span.met{color:var(--ok)}
+.req span.miss{color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--warn)}
+.spec .btn{margin-top:8px}
+.mile{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
+.mile li{display:flex;gap:10px}
+.mile li .l{font-family:var(--display);font-weight:700;width:2.4ch;text-align:right;flex:none}
+.mile li.done{color:var(--ink)}
+.mile li.todo{color:var(--muted)}
+.mast{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:13px}
+.mast select{padding:3px 6px;font-size:13px}
+.mast .own{color:var(--muted)}
+.saves{display:grid;gap:8px}
+.saves .line{display:flex;gap:6px}
+.saves input[type=text]{flex:1;min-width:0;background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.savelist{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
+.savelist li{display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.savelist li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.savelist li div{display:flex;gap:4px;flex:none}
+textarea{width:100%;min-height:64px;background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;resize:vertical}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;z-index:20}
+.row .name .bonus.neg{color:var(--warn)}
+.warn-txt{color:var(--warn)!important}
+.h3n{font-family:var(--body);font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);float:right;margin-top:3px}
+.bodyf{display:grid;gap:2px;margin-bottom:10px}
+.bh{display:flex;justify-content:space-between;align-items:baseline}
+.bh label{font-weight:600}
+.bh output{font-family:var(--display);font-weight:700;font-size:20px}
+.bodyf input{width:100%;accent-color:var(--accent)}
+.fx{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.fx span{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.fx .up{color:var(--ok);border-color:var(--ok)}
+.fx .down{color:var(--warn);border-color:var(--warn)}
+.fx .same{color:var(--muted)}
+.accel{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.accel b{color:var(--ink);font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.04em}
+.pslbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 6px}
+.gold{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.pstile{border-radius:6px;padding:8px 10px;border:1px solid var(--line);background:var(--sunk);min-width:0}
+.pstile b{display:block;font-family:var(--display);font-size:17px;font-weight:600;line-height:1.1}
+.pstile small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.pstile.plus{border-color:var(--t2);background:color-mix(in srgb,var(--t2) 12%,var(--surface))}
+.pstile.plus b{color:var(--ink)}
+.pstile.spec{border-style:dashed}
+.rep{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:10px}
+.slots{display:grid;gap:6px}
+.slot{display:flex;align-items:center;gap:8px}
+.slot select{flex:1;min-width:0}
+.slot.locked{color:var(--muted);font-size:13px;border:1px dashed var(--line);border-radius:6px;padding:6px 8px}
+.slotn{font-family:var(--display);font-weight:700;width:1.2ch;text-align:center;color:var(--muted)}
+.btn.x{padding:4px 8px}
+.psd{margin:-2px 0 4px 22px;font-size:12px;color:var(--muted)}
+.spec-act{display:flex;flex-wrap:wrap;gap:6px}
+.spec.inuse .spec-h b{color:var(--accent)}
+.psi{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:5px}
+.pstile .psi{color:var(--t2)}
+.slot .slotn .psi{margin:0;color:var(--accent)}
+.slot.bad select{border-color:var(--warn)}
+.slot.bad .slotn .psi{color:var(--warn)}
+.psreq{margin:0 0 2px 22px;font-size:12px;gap:2px 8px}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-weight:600;text-decoration:underline;cursor:pointer;font-size:12px}
+.tog{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:10px;cursor:pointer}
+.tog input{accent-color:var(--accent)}
+/* Pestañas */
+.inner{max-width:1180px;margin:0 auto}
+.panel{margin-top:16px}
+.tabscroll{overflow-x:auto;margin:0 -4px;padding:0 4px;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:2px;min-width:max-content}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px 9px;cursor:pointer;
+  font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.tabs button:hover{color:var(--ink)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tb{font-family:var(--body);font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:0 7px}
+.tb:empty{display:none}
+.tabs button.on .tb{border-color:var(--accent);color:var(--accent)}
+.sech{font-family:var(--display);font-size:24px;font-weight:700;text-transform:uppercase;margin:0}
+/* PlayStyles */
+.psgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;align-items:start}
+.psgrid .gold{grid-template-columns:1fr}
+.psgrid .pstile{padding:12px 14px}
+.psgrid .pstile b{font-size:21px}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pslot{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--sunk);min-width:0}
+.pslot .sn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.pslot .sn .psi{margin:0;width:16px;height:16px}
+.pslot b{display:block;font-family:var(--display);font-size:18px;font-weight:600;line-height:1.15}
+.pslot small{display:block;font-size:12px;color:var(--muted)}
+.pslot.locked,.pslot.empty{grid-template-columns:auto 1fr;border-style:dashed;background:transparent}
+.pslot.locked b,.pslot.empty b{color:var(--muted)}
+.pslot.on{border-color:var(--accent)}
+.pslot.on .sn{color:var(--accent);border-color:var(--accent)}
+.pslot.bad{border-color:var(--warn)}
+.pslot.bad .sn{color:var(--warn);border-color:var(--warn)}
+.pslot .psreq,.pslot .psd{margin:4px 0 0}
+.catwrap{margin-top:22px}
+.cathead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;margin-bottom:10px}
+.catopts{display:flex;flex-wrap:wrap;gap:4px 18px}
+.catopts .tog{margin:0}
+.catg{margin-bottom:18px}
+.catg h4{margin:0 0 8px;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.pscard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pscard header{display:flex;align-items:center;gap:6px}
+.pscard header b{font-family:var(--display);font-size:18px;font-weight:600;flex:1;min-width:0}
+.pscard header .psi{margin:0;color:var(--muted)}
+.pscard p{margin:0;font-size:13px;color:var(--muted)}
+.pscard .psreq{margin:0}
+.pscard .pa{margin-top:auto;padding-top:4px}
+.pscard.free header .psi{color:var(--accent)}
+.pscard.free .chip{color:var(--accent);border-color:var(--accent)}
+.pscard.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.pscard.on .chip{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pscard.gold{border-color:var(--t2)}
+.pscard.gold .chip{color:var(--t2);border-color:var(--t2)}
+.pscard.lock{background:var(--sunk)}
+.pscard.lock b{color:var(--muted)}
+.pscard.lock .chip{color:var(--warn);border-color:var(--warn)}
+.nofree{font-size:12px;color:var(--muted)}
+/* Altura y peso */
+.bodygrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.bodygrid .bh output{font-size:26px}
+.tbl{overflow-x:auto}
+.tbl table{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 6px;border-bottom:1px solid var(--line)}
+#eaPlayers table{font-size:12px;white-space:nowrap}
+#eaPlayers th{cursor:pointer;user-select:none}
+#eaPlayers th:hover{color:var(--ink)}
+#eaPlayers th.sorted{color:var(--accent)}
+#eaPlayers td:first-child,#eaPlayers th:first-child{position:sticky;left:0;background:var(--surface)}
+.tbl th:not(:first-child),.tbl td:not(:first-child){text-align:right}
+.tbl td.up{color:var(--ok);font-weight:600}.tbl td.down{color:var(--warn);font-weight:600}.tbl td.same{color:var(--muted)}
+.tbl td.fin{font-family:var(--display);font-weight:700;font-size:18px}
+.accbig{display:flex;flex-direction:column;margin-bottom:12px}
+.accbig b{font-family:var(--display);font-size:32px;font-weight:700;text-transform:uppercase;line-height:1}
+.accbig span{color:var(--muted);font-size:13px}
+.accgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.accgrid h4{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cklist{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
+.cklist li{display:flex;gap:6px}
+.cklist li span{font-weight:700;width:1em;flex:none}
+.cklist li.ok span{color:var(--ok)}.cklist li.no{color:var(--muted)}.cklist li.no span{color:var(--warn)}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.stat{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.stat b{font-family:var(--display);font-size:20px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{font-size:11px;color:var(--muted);letter-spacing:.03em;line-height:1.3}
+.stat.ok b{color:var(--ok)}
+.matchdet{border-bottom:1px solid var(--line)}
+.matchdet:last-child{border-bottom:0}
+.matchdet summary{list-style:none;cursor:pointer}
+.matchdet summary::-webkit-details-marker{display:none}
+.matchrow{display:flex;align-items:center;gap:12px;padding:9px 2px}
+.mres{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:13px;border:1px solid var(--line);background:var(--sunk);color:var(--muted);flex:none}
+.mres.ok{color:var(--ok);border-color:var(--ok)}
+.mres.no{color:var(--warn);border-color:var(--warn)}
+.mwho{flex:1;min-width:0}
+.mwho b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwho small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.mscore{font-family:var(--display);font-weight:700;font-size:17px;flex:none}
+.mscore span{color:var(--muted);font-weight:400;margin:0 2px;font-size:13px}
+.mchev{color:var(--muted);font-size:11px;flex:none;transition:transform .15s}
+.matchdet[open] .mchev{transform:rotate(180deg)}
+.matchplayers{padding:2px 4px 12px 40px;display:grid;gap:4px}
+.mprow{display:flex;align-items:center;gap:8px;font-size:12px}
+.mprow .mpname{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mprow .mpdetail{color:var(--muted);white-space:nowrap}
+.mprow .mprating{font-family:var(--display);width:3ch;text-align:right;flex:none}
+.mprow .chip{flex:none}
+.subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.subtab{border:1px solid var(--line);background:var(--sunk);border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px;cursor:pointer;color:var(--muted)}
+.subtab.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+/* Maestrías */
+.mastsum{margin-bottom:16px}
+.mastsum .fx{margin:0}
+.mastgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.mcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mcard.act{border-color:var(--ok)}
+.mcard.own{background:var(--sunk)}
+.mcard header b{display:block;font-family:var(--display);font-size:20px;font-weight:600;line-height:1.1}
+.mcard header small{color:var(--muted);font-size:12px}
+.msteps{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px;color:var(--muted)}
+.msteps li{display:flex;gap:8px}
+.msteps li span{font-family:var(--display);font-weight:700;width:2ch;text-align:right;flex:none}
+.msteps li.ok{color:var(--ok);font-weight:600}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:auto}
+.seg button{border:0;border-left:1px solid var(--line);background:var(--sunk);padding:6px 0;cursor:pointer;font-weight:600;font-size:13px}
+.seg button:first-child{border-left:0}
+.seg button.sel{background:var(--accent);color:var(--accent-ink)}
+.ownlv{margin:auto 0 0;font-size:12px;color:var(--muted)}
+/* Instalaciones */
+.row .name .bonus.over,.fx span.over{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.numin{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:9ch}
+.numin.sm{width:6ch}
+.facgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start}
+.facmeter{margin:10px 0 12px}
+.facmeter .note{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.switch{display:flex;gap:10px;align-items:flex-start;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--sunk)}
+.switch input{accent-color:var(--warn);width:18px;height:18px;margin-top:2px;flex:none}
+.switch b{display:block}
+.switch small{display:block;font-size:12px;color:var(--muted)}
+.faccols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.faccols .sech{margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.faccols .sech .h3n{float:none;margin:0}
+.faclist{display:grid;gap:10px}
+.fcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:8px}
+.fcard header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fcard header b{font-family:var(--display);font-size:19px;font-weight:600;min-width:0}
+.fcard .fx{margin:0}
+.fcard.on{border-color:var(--ok)}
+.fcard.bugged{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 6%,var(--surface))}
+.fcard:not(.on){opacity:.75}
+.fnote{margin:0;font-size:12px;color:var(--muted)}
+.fcard.bugged .fnote{color:var(--warn);font-weight:600}
+.fact{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.fact .tog{margin:0}
+.budgets{display:flex;flex-wrap:wrap;gap:10px 16px}
+.numin.wide{width:14ch}
+.facmeter .flbl{display:block;margin-bottom:3px}
+.facgrid .field{margin-bottom:10px}
+.facgrid .field select{max-width:100%}
+.facgrid .switch{margin-bottom:8px}
+#presetBox{margin-top:6px}
+#presetBox .hint{margin:6px 0 0}
+.facsumcard{margin-top:16px}
+.facsumcard .fx{margin:0}
+.fgrp{margin:-4px 0 0;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.fcard.otherline{border-color:var(--line);opacity:.7}
+.emptyf{margin:0;padding:14px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:13px}
+.facform{margin-top:20px}
+.ffrow{display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:10px}
+.field.grow{flex:1;min-width:180px}
+.field input[type=text]{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+.flbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fboosts{display:grid;gap:6px;margin:4px 0 6px}
+.fb{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fb select{min-width:0;flex:0 1 220px}
+.facform .line{display:flex;gap:8px;margin-top:10px}
+@media (max-width:900px){.facgrid,.faccols{grid-template-columns:1fr}}
+/* Resumen */
+.ficha{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 28px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;
+  background-image:linear-gradient(135deg,color-mix(in srgb,var(--accent) 9%,transparent),transparent 55%)}
+.fid .eyebrow{margin:0;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fid h2{margin:2px 0 8px;font-family:var(--display);font-size:46px;font-weight:700;text-transform:uppercase;line-height:.95}
+.fmeta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:14px}
+.fstars{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:8px;font-size:13px;color:var(--muted)}
+.fstars .pips{font-weight:400}
+.fap{margin:8px 0 0;font-size:12px;color:var(--muted)}
+.face{display:grid;grid-template-columns:repeat(3,72px);gap:8px}
+.fs{border:1px solid var(--line);border-radius:8px;background:var(--sunk);padding:8px 6px;display:flex;flex-direction:column;align-items:center}
+.fs b{font-family:var(--display);font-size:32px;font-weight:700;line-height:1}
+.fs span{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted)}
+.q4{color:var(--q4)}.q3{color:var(--q3)}.q2{color:var(--q2)}.q1{color:var(--q1)}
+.fs.q4{border-color:var(--q4)}.fs.q3{border-color:var(--q3)}
+.fs b{color:inherit}
+.sumps{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.sumpsh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.psrow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.psrow:first-of-type{border-top:0}
+.psrl{width:70px;flex:none;align-self:center;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.psrow .hint{margin:0;align-self:center}
+.psb{margin:0;width:84px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.psb svg{width:64px;height:64px;overflow:visible}
+.psb figcaption{font-size:11.5px;font-weight:600;text-align:center;line-height:1.2}
+.psb .psb-g{fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.psb.gold .psb-bg{fill:var(--gold2)}.psb.gold .psb-in{fill:var(--gold1)}.psb.gold .psb-g{stroke:var(--goldink)}
+.psb.grey .psb-bg{fill:var(--grey2)}.psb.grey .psb-in{fill:var(--grey1)}.psb.grey .psb-g{stroke:var(--greyink)}
+.psb-plus circle{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.psb-plus path{stroke:var(--accent-ink);stroke-width:2.2;stroke-linecap:round}
+.sumlegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:18px 0 10px;font-size:12px;color:var(--muted)}
+.sumlegend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:10px;height:10px;border-radius:2px;display:inline-block}
+.lg.buy{background:var(--accent)}.lg.body{background:var(--t0)}.lg.mast{background:var(--ok)}.lg.fac{background:var(--cfac)}
+.over-cap-l{text-decoration:underline dotted;text-underline-offset:3px}
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
+.sg{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.sg h3{margin:0 0 6px;display:flex;justify-content:space-between;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.sg h3 span{font-size:20px;font-weight:700}
+.sr{display:grid;grid-template-columns:minmax(0,1fr) auto 34px;grid-template-areas:"n p v" "b b b";gap:2px 8px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
+.sr .sn{grid-area:n;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr .sp{grid-area:p;display:flex;gap:3px}
+.sr .sv{grid-area:v;font-family:var(--display);font-size:21px;font-weight:700;text-align:right}
+.sr .sv.overcap{text-decoration:underline dotted;text-underline-offset:3px}
+.sr .sbar{grid-area:b;height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.sr .sbar i{display:block;height:100%;background:currentColor}
+.pt{font-style:normal;font-size:11px;font-weight:600;padding:0 5px;border-radius:4px;line-height:18px;color:var(--surface)}
+.pt.buy{background:var(--accent)}.pt.body{background:var(--t0)}.pt.mast{background:var(--ok)}.pt.fac{background:var(--cfac)}
+@media (max-width:700px){.ficha{grid-template-columns:1fr}.face{grid-template-columns:repeat(3,1fr)}.fid h2{font-size:36px}}
+.gender{margin-bottom:12px;grid-template-columns:1fr 1fr!important}
+.gender button{font-size:14px;padding:8px 0}
+/* Builds */
+.card h3 .chip{font-family:var(--body);font-size:11px;letter-spacing:0;text-transform:none;vertical-align:middle;margin-left:6px;color:var(--muted)}
+.card h3 .chip.ok{color:var(--ok);border-color:var(--ok)}
+.savelist li span b{font-weight:600}
+.who{font-style:normal;color:var(--muted)}
+#migrateBox{border:1px dashed var(--line);border-radius:6px;padding:8px 10px}
+.acctcard{margin-bottom:16px}
+.acctcard .line{display:flex;flex-wrap:wrap;gap:8px}
+.acctcard input[type=email],.acctcard input[type=text]{flex:1;min-width:200px;background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.acct{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.acct b{display:block;font-family:var(--display);font-size:20px;font-weight:600}
+.acct small{color:var(--muted)}
+.okmsg{color:var(--ok)!important}
+.btn.sm{font-family:var(--body);font-size:12px;letter-spacing:0;text-transform:none;padding:3px 8px;float:right}
+#migrateBox .hint{margin:0 0 6px}
+.buildgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+@media (max-width:900px){.psgrid,.bodygrid,.buildgrid{grid-template-columns:1fr}}
+@media (max-width:560px){.slots{grid-template-columns:1fr}.accgrid{grid-template-columns:1fr}.tabs button{font-size:16px;padding:10px 10px 9px}}
+footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  aside{position:static}
+  .bar-in{grid-template-columns:1fr}
+  .budget{align-items:stretch}
+}
+@media (max-width:560px){
+  .row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n s" "t c";gap:4px 10px}
+  .row .name{grid-area:n}.row .trackbox{grid-area:t}.row .stepper{grid-area:s}.row .cost{grid-area:c}
+  .lvl input[type=range]{width:110px}
+  .budget .fig{font-size:26px}
+}
+/* Barra de pestañas (en celular queda pegada arriba con el contador de AP) */
+.tabin{display:flex;align-items:center;gap:10px}
+.tabin .tabscroll{flex:1;min-width:0}
+.mobap{display:none}
+@media (max-width:700px){
+  body::before{background:var(--bg)}
+  header.bar{position:static;padding-block:10px}
+  .bar-in{grid-template-columns:1fr;gap:8px}
+  .brand{font-size:20px}
+  .brand small{display:none}
+  .controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;align-items:end}
+  .controls .field:first-child{grid-column:1}
+  .controls #resetBtn{grid-column:2;grid-row:1;align-self:end}
+  .controls .field:nth-child(2){grid-column:1 / -1}
+  .controls select{width:100%}
+  .lvl{gap:12px}
+  .lvl input[type=range]{flex:1;width:auto}
+  .budget{display:none}
+  main{padding-block:12px 40px}
+  .arch-head{margin-bottom:8px}
+  .arch-head h1{font-size:28px}
+  .arch-head p{font-size:13px}
+  .tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);
+    margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));
+    box-shadow:0 1px 0 var(--line),0 6px 12px -10px rgba(0,0,0,.35)}
+  .tabin .tabscroll{border-bottom:0;margin:0;padding:0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabin .tabscroll::-webkit-scrollbar{display:none}
+  .tabscroll.more-r{-webkit-mask-image:linear-gradient(to right,#000 82%,transparent);mask-image:linear-gradient(to right,#000 82%,transparent)}
+  .tabscroll.more-l{-webkit-mask-image:linear-gradient(to left,#000 82%,transparent);mask-image:linear-gradient(to left,#000 82%,transparent)}
+  .tabscroll.more-l.more-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 14%,#000 82%,transparent);mask-image:linear-gradient(to right,transparent,#000 14%,#000 82%,transparent)}
+  .tabs button{font-size:15px;padding:13px 10px 11px;gap:6px}
+  .tabs .tb{display:none}
+  .mobap{display:flex;flex-direction:column;align-items:flex-end;flex:none;line-height:1;padding-left:8px;border-left:1px solid var(--line)}
+  .mobap b{font-family:var(--display);font-size:19px;font-weight:700}
+  .mobap small{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
+  .mobap small{margin-top:2px;letter-spacing:.02em;white-space:nowrap}
+  .linkbtn{padding:8px 0}
+  .mobap.over b{color:var(--warn)}
+  .panel{margin-top:12px}
+  /* Tamaños cómodos para el dedo */
+  .btn{min-height:40px;padding:8px 12px}
+  .btn.x,.btn.sm{min-height:34px}
+  .stepper button{width:40px;height:40px;font-size:18px}
+  .seg button{padding:10px 0}
+  .tog{min-height:36px}
+  input,select,textarea{font-size:16px!important}
+  select{padding:8px}
+  .track{height:36px}
+  .track input{height:36px}
+  .track input::-webkit-slider-thumb{width:22px;height:22px;margin-top:-8px}
+  .track input::-moz-range-thumb{width:18px;height:18px}
+  .bodyf input,.lvl input{height:32px}
+  /* Contenido: las columnas pueden achicarse hasta el ancho de la pantalla */
+  .wrap,.psgrid,.bodygrid,.buildgrid,.facgrid,.faccols,.sumgrid,.cards,.mastgrid{grid-template-columns:minmax(0,1fr)!important}
+  .card,.panel section,.pslot,.fcard,.pscard,.mcard,.sg{min-width:0}
+  .saves .line{flex-wrap:wrap}
+  .saves .line input[type=text]{min-width:0;flex:1 1 160px}
+  .card{padding:12px}
+  .fid h2{font-size:34px}
+  .psb{width:74px}
+  .psb svg{width:56px;height:56px}
+  .psrl{width:100%}
+  .sumgrid{grid-template-columns:1fr}
+  .cards{grid-template-columns:1fr}
+  .mastgrid{grid-template-columns:1fr}
+  .budgets .field{flex:1;min-width:140px}
+  .numin.wide{width:100%}
+  .savelist li{flex-wrap:wrap}
+  .acct{flex-direction:column;align-items:stretch}
+  .toast{left:16px;right:16px;transform:none;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">Pro Clubs 27<small>Simulador de builds · temporada 2</small></div>
+    <div class="controls">
+      <div class="field"><label for="arch">Arquetipo</label><select id="arch"></select></div>
+      <div class="field"><label for="level">Nivel</label>
+        <div class="lvl"><input type="range" id="level" min="1" max="55" value="55"><output id="levelOut">55</output></div></div>
+      <button class="btn" id="resetBtn" type="button">Reiniciar</button>
+    </div>
+    <div class="budget">
+      <div class="fig num" id="budgetFig">0 <span>/ 1419 AP</span></div>
+      <div class="meter" id="meter"><i style="width:0"></i></div>
+      <div class="note num" id="budgetNote"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="inner">
+    <div class="arch-head"><h1 id="archName"></h1><p id="archInfo"></p></div>
+  </div>
+  <div class="tabbar" id="tabbar"><div class="inner tabin">
+    <div class="tabscroll" id="tabscroll"><nav class="tabs" role="tablist" aria-label="Secciones">
+      <button type="button" role="tab" id="t-resumen" data-tab="resumen">Resumen</button>
+      <button type="button" role="tab" id="t-atributos" data-tab="atributos">Atributos <span class="tb num" id="tbAttr"></span></button>
+      <button type="button" role="tab" id="t-playstyles" data-tab="playstyles">PlayStyles <span class="tb num" id="tbPs"></span></button>
+      <button type="button" role="tab" id="t-cuerpo" data-tab="cuerpo">Altura y peso <span class="tb num" id="tbBody"></span></button>
+      <button type="button" role="tab" id="t-maestrias" data-tab="maestrias">Maestrías <span class="tb num" id="tbMast"></span></button>
+      <button type="button" role="tab" id="t-instalaciones" data-tab="instalaciones">Instalaciones <span class="tb num" id="tbFac"></span></button>
+      <button type="button" role="tab" id="t-club" data-tab="club">Estadísticas del club</button>
+      <button type="button" role="tab" id="t-builds" data-tab="builds">Mis builds <span class="tb num" id="tbSaves"></span></button>
+    </nav></div>
+    <div class="mobap num" id="mobAP" aria-live="polite"></div>
+  </div></div>
+
+  <div class="panel" id="p-atributos" role="tabpanel" aria-labelledby="t-atributos">
+  <div class="wrap">
+    <section aria-label="Atributos">
+      <div class="card" id="photoCard">
+        <h3>📷 Leer build de una foto</h3>
+        <p class="hint">Sacale una foto con el celular a la pantalla de atributos del juego (sirve aunque tenga brillo o esté de costado) y la IA te completa los valores acá. Hace falta estar logueado y ser miembro del club.</p>
+        <input type="file" accept="image/*" capture="environment" id="photoInput" hidden>
+        <button class="btn primary" type="button" id="photoBtn">Elegir foto del build</button>
+        <p class="hint" id="photoStatus" aria-live="polite"></p>
+      </div>
+      <div class="legend">
+        <span><i class="dot d0"></i>Muy barato</span><span><i class="dot d1"></i>Barato</span>
+        <span><i class="dot d2"></i>Caro</span><span><i class="dot d3"></i>Muy caro</span>
+        <span>Arrastrá la barra o usá − / +. El costo de cada punto sube con el valor. En verde o rojo, el valor final con altura, peso y maestrías.</span>
+      </div>
+      <div id="groups"></div>
+    </section>
+
+    <aside>
+      <div class="card" id="starsCard"><h3>Filigranas y pierna mala</h3><div class="stars" id="stars"></div></div>
+      <div class="card"><h3>Especializaciones</h3><div id="specs"></div>
+        <p class="hint">Cada una pide tres atributos en 90 o 92 y te da su PlayStyle+, que reemplaza a uno de tus dorados (lo elegís en PlayStyles).</p></div>
+      <div class="card"><h3>Hitos del nivel</h3><ul class="mile" id="miles"></ul></div>
+    </aside>
+  </div>
+  </div>
+
+  <div class="panel" id="p-resumen" role="tabpanel" aria-labelledby="t-resumen" hidden>
+    <div class="inner">
+      <section class="ficha" id="ficha">
+        <div class="fid" id="sumId"></div>
+        <div class="face" id="sumFace"></div>
+      </section>
+      <section class="sumps">
+        <div class="sumpsh"><h2 class="sech">PlayStyles</h2><button class="btn" type="button" id="copySum">Copiar resumen</button></div>
+        <div class="psrow" id="sumGold"></div>
+        <div class="psrow" id="sumSilver"></div>
+      </section>
+      <div class="sumlegend"><span><i class="lg buy"></i>Comprado con AP</span><span><i class="lg body"></i>Altura y peso</span><span><i class="lg mast"></i>Maestrías</span><span><i class="lg fac"></i>Instalaciones</span><span class="over-cap-l">Subrayado: pasa el tope del arquetipo</span></div>
+      <div class="sumgrid" id="sumAttrs"></div>
+      <p class="hint">Valores de partido: lo comprado con AP más altura y peso, maestrías e instalaciones (con el bug de IA si está activado). Las medias de carta se calculan con la fórmula clásica de FIFA, son aproximadas.</p>
+    </div>
+  </div>
+
+  <div class="panel" id="p-playstyles" role="tabpanel" aria-labelledby="t-playstyles" hidden>
+    <div class="inner">
+      <div class="psgrid">
+        <section class="card"><h3>Dorados <span class="h3n">firma del arquetipo</span></h3>
+          <div class="gold" id="gold"></div>
+          <div class="rep" id="repBox" hidden></div>
+          <p class="hint">El primero pasa a + en el nivel 20 y el segundo en el 55. Una especialización activa cambia uno de los dos por su PlayStyle+.</p></section>
+        <section class="card"><h3>Plateados <span class="h3n num" id="psCount"></span></h3>
+          <div class="slots" id="slots"></div>
+          <p class="hint">Los espacios se abren en los niveles 5, 15, 40 y 55. Elegí del catálogo de abajo.</p></section>
+      </div>
+      <section class="catwrap">
+        <div class="cathead"><h2 class="sech">Catálogo</h2>
+          <div class="catopts">
+            <label class="tog" for="psOnly"><input type="checkbox" id="psOnly"> Solo los que puedo equipar</label>
+            <label class="tog" for="useFinal"><input type="checkbox" id="useFinal"> Contar altura, peso y maestrías en los requisitos</label>
+          </div></div>
+        <div id="catalog"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="panel" id="p-cuerpo" role="tabpanel" aria-labelledby="t-cuerpo" hidden>
+    <div class="inner">
+      <div class="bodygrid">
+        <section class="card"><h3>Tu cuerpo</h3>
+          <div class="gender seg" role="radiogroup" aria-label="Género del Pro"><button type="button" role="radio" data-g="m" id="gM">Jugador</button><button type="button" role="radio" data-g="f" id="gF">Jugadora</button></div>
+          <div class="bodyf"><div class="bh"><label for="hIn">Altura</label><output id="hOut" class="num"></output></div>
+            <input type="range" id="hIn" step="1"><div class="scale num"><span id="hRange"></span></div></div>
+          <div class="bodyf"><div class="bh"><label for="wIn">Peso</label><output id="wOut" class="num"></output></div>
+            <input type="range" id="wIn" step="1"><div class="scale num"><span id="wRange"></span></div></div>
+          <button class="btn" id="bodyReset" type="button">Volver al cuerpo base</button>
+          <p class="hint">Cada 4 cm o 8 kg de diferencia con el cuerpo base mueve 1 punto. Más alto o más pesado da fuerza y salto y quita aceleración y agilidad. No cuesta AP.</p></section>
+        <section class="card"><h3>Efecto en los atributos</h3>
+          <div class="tbl" id="bodyTable"></div></section>
+        <section class="card"><h3>AcceleRATE</h3>
+          <div id="accelBox"></div></section>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-maestrias" role="tabpanel" aria-labelledby="t-maestrias" hidden>
+    <div class="inner">
+      <section class="card mastsum"><h3>Lo que suman tus maestrías</h3><div class="fx" id="mastSum"></div>
+        <p class="hint">Cada arquetipo que subas da +1 permanentes a todos tus arquetipos: dos atributos en el nivel 10, uno en el 30 y otro en el 55. No cuestan AP.</p></section>
+      <div class="mastgrid" id="mast"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-instalaciones" role="tabpanel" aria-labelledby="t-instalaciones" hidden>
+    <div class="inner">
+      <div class="facgrid">
+        <section class="card"><h3>Club</h3>
+          <div class="budgets">
+            <div class="field"><label for="facBudgetP">Presupuesto de jugador</label>
+              <input type="number" id="facBudgetP" min="0" step="50000" class="numin wide"></div>
+            <div class="field"><label for="facBudget">Presupuesto de IA</label>
+              <input type="number" id="facBudget" min="0" step="50000" class="numin wide"></div>
+          </div>
+          <div class="facmeter"><span class="flbl">De jugador</span><div class="meter" id="facMeterP"><i style="width:0"></i></div><p class="note num" id="facUseP"></p></div>
+          <div class="facmeter"><span class="flbl">De IA</span><div class="meter" id="facMeter"><i style="width:0"></i></div><p class="note num" id="facUse"></p></div>
+          <div id="presetBox" hidden><button class="btn primary" type="button" id="presetBtn">Cargar las 6 instalaciones de IA del club</button>
+            <p class="hint">Las que mandó Beto: 3 de delanteros, 1 de medios y 2 de defensores (1.500.000 en total).</p></div>
+        </section>
+        <section class="card"><h3>Tu Pro</h3>
+          <div class="field"><label for="facLine">Tu línea</label>
+            <select id="facLine"><option value="">Según el arquetipo</option><option value="att">Delantero (ST, RW, LW)</option><option value="mid">Mediocampista (CDM, CM, RM, LM, CAM)</option><option value="def">Defensor (CB, RB, LB)</option><option value="gk">Arquero</option></select></div>
+          <label class="switch" for="facBug"><input type="checkbox" id="facBug"><span><b>Aplicar bug de IA</b><small>Las instalaciones de IA también le suman a tu Pro. Apagalo cuando EA lo arregle.</small></span></label>
+          <label class="tog" for="facAllLines"><input type="checkbox" id="facAllLines"> El bug suma las de IA de todas las líneas, no solo la mía</label>
+        </section>
+      </div>
+      <section class="card facsumcard"><h3>Lo que le suman a tu Pro</h3><div class="fx" id="facSum"></div>
+        <p class="hint">Pueden pasar el tope del arquetipo (máximo 99). No cuentan para desbloquear PlayStyles ni especializaciones. Las instalaciones son del club y valen para todos.</p></section>
+      <div class="faccols">
+        <section><h2 class="sech">De jugador <span class="h3n">suben a los humanos</span></h2><div class="faclist" id="facPlayer"></div></section>
+        <section><h2 class="sech">De IA <span class="h3n" id="facAiNote"></span></h2><div class="faclist" id="facAi"></div></section>
+      </div>
+      <section class="card facform" id="facForm"><h3 id="facFormTitle">Agregar instalación</h3>
+        <div class="ffrow">
+          <div class="field grow"><label for="fName">Nombre</label><input type="text" id="fName" maxlength="40" placeholder="Ej: Pista de atletismo"></div>
+          <div class="field"><label for="fType">Tipo</label><select id="fType"><option value="player">De jugador</option><option value="ai">De IA</option></select></div>
+          <div class="field"><label for="fGrp">Para</label><select id="fGrp"><option value="att">Delanteros</option><option value="mid">Mediocampistas</option><option value="def">Defensores</option><option value="gk">Arqueros</option><option value="all">Todos</option></select></div>
+          <div class="field"><label for="fCost">Costo</label><input type="number" id="fCost" min="0" step="50000" class="numin wide" value="0"></div>
+        </div>
+        <div class="field"><span class="flbl">Atributos que sube</span><div id="fBoosts" class="fboosts"></div>
+          <button type="button" class="linkbtn" id="fAddBoost">+ Agregar atributo</button></div>
+        <p class="hint warn-txt" id="fErr" hidden></p>
+        <div class="line"><button type="button" class="btn primary" id="fSave">Guardar instalación</button><button type="button" class="btn" id="fCancel" hidden>Cancelar edición</button></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="panel" id="p-club" role="tabpanel" aria-labelledby="t-club" hidden>
+    <div class="inner">
+      <section class="card">
+        <h3>Estadísticas del club (EA)</h3>
+        <div class="subtabs" id="clubSubtabs"></div>
+        <p class="hint" id="eaStatus">Esto lo actualiza Beto a mano cada tanto (EA bloquea traerlo solo). Última actualización: —</p>
+      </section>
+      <section class="card" id="eaRecordCard" hidden><h3>Récord del club</h3><div id="eaRecord"></div></section>
+      <section class="card" id="eaPlayersCard" hidden><h3>Jugadores</h3><p class="hint">Tocá un encabezado para ordenar. Por defecto, de mejor a peor rating.</p><div class="tbl" id="eaPlayers" style="overflow-x:auto"></div></section>
+      <section class="card" id="eaMatchesCard" hidden><h3>Últimos partidos</h3><div id="eaMatches"></div></section>
+      <section class="card" id="eaPlayoffsCard" hidden><h3>Playoffs</h3><div id="eaPlayoffs"></div></section>
+      <details id="eaRawBox" hidden><summary class="hint">Ver datos crudos (por si algo no se ve bien)</summary><pre id="eaRaw" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></details>
+    </div>
+  </div>
+
+  <div class="panel" id="p-builds" role="tabpanel" aria-labelledby="t-builds" hidden>
+    <div class="inner">
+      <section class="card acctcard" id="acctCard" hidden><h3>Cuenta del club</h3><div id="acctBox"></div></section>
+      <div class="buildgrid">
+        <section class="card"><h3>Mis builds <span class="chip" id="cloudChip">En este navegador</span></h3>
+          <div class="saves">
+            <div class="line"><input type="text" id="saveName" placeholder="Nombre del build" maxlength="40"><button class="btn primary" id="saveBtn" type="button">Guardar el actual</button></div>
+            <ul class="savelist" id="saveList"></ul>
+            <div id="migrateBox" hidden><p class="hint">Tenés builds guardados en este navegador que todavía no están en la nube.</p>
+              <button class="btn" id="migrateBtn" type="button">Subir mis builds a la nube</button></div>
+          </div>
+          <p class="hint" id="saveHint">Se guardan en este navegador.</p></section>
+        <section class="card" id="clubBuildsCard" hidden><h3>Builds del club <button class="btn sm" type="button" id="refreshBtn">Actualizar</button></h3>
+          <ul class="savelist" id="clubList"></ul>
+          <p class="hint">Los builds que guardaron los demás. Al abrir uno se carga una copia: el original no se toca.</p></section>
+        <section class="card"><h3>Compartir</h3>
+          <div class="saves">
+            <div class="line"><button class="btn" id="exportBtn" type="button">Copiar código del build</button><button class="btn" id="importBtn" type="button">Cargar código</button></div>
+            <textarea id="codeBox" placeholder="Pegá acá un código de build para cargarlo"></textarea>
+          </div>
+          <p class="hint">Con el código le pasás tu build a un amigo, o lo llevás a otro navegador.</p></section>
+      </div>
+    </div>
+  </div>
+  <footer>Precios por punto, valores iniciales y topes de la temporada 2 (re-tier del 22/10/2026). AP por nivel exacto del 40 al 55; por debajo del 40 es una estimación lineal. Fan-made, sin relación con EA.</footer>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+const K="acc spr agi bal rea bc dri com vis cro fk sp lp cur pos fin shp ls vol pen int hea da st sl jum str sta agg gkd gkh gkk gkp gkr".split(" ");
+const NAME={acc:"Aceleración",spr:"Velocidad",agi:"Agilidad",bal:"Equilibrio",rea:"Reacciones",bc:"Control de balón",dri:"Regate",com:"Compostura",
+ vis:"Visión",cro:"Centros",fk:"Tiro libre",sp:"Pase corto",lp:"Pase largo",cur:"Efecto",pos:"Posicionamiento",fin:"Definición",shp:"Potencia de tiro",
+ ls:"Tiros lejanos",vol:"Voleas",pen:"Penales",int:"Intercepciones",hea:"Cabezazo",da:"Conciencia def.",st:"Entrada de pie",sl:"Barrida",
+ jum:"Salto",str:"Fuerza",sta:"Resistencia",agg:"Agresividad",gkd:"Estirada (GK)",gkh:"Manejo (GK)",gkk:"Saque (GK)",gkp:"Colocación (GK)",gkr:"Reflejos (GK)"};
+const GROUPS=[["Ritmo",["acc","spr"]],["Control",["agi","bal","rea","bc","dri","com"]],["Pase",["vis","cro","fk","sp","lp","cur"]],
+ ["Ataque",["pos","fin","shp","ls","vol","pen"]],["Defensa",["int","hea","da","st","sl"]],["Físico",["jum","str","sta","agg"]],["Arquero",["gkd","gkh","gkk","gkp","gkr"]]];
+const TIERNAME=["muy barato","barato","caro","muy caro"];
+// Precio de un punto según el valor al que lo subís: [muy barato, barato, caro, muy caro]
+const PRICE=[[60,[1,1,1,2]],[63,[1,1,2,3]],[66,[1,2,3,4]],[69,[1,2,3,5]],[74,[2,3,4,6]],[79,[3,4,6,8]],[84,[3,5,7,10]],[89,[6,8,11,15]],
+ [92,[8,11,15,20]],[94,[10,15,20,25]],[95,[15,20,25,30]],[96,[20,25,30,35]],[97,[25,30,35,40]],[98,[30,35,40,45]],[99,[35,40,45,50]]];
+function price(v,t){for(const [m,p] of PRICE) if(v<=m) return p[t]; return 50;}
+function cost(a,b,t){let s=0;for(let v=a+1;v<=b;v++) s+=price(v,t);return s;}
+const SM={A:{3:8,4:15,5:25},B:{3:10,4:20,5:35}}, WF={A:{3:15,4:25,5:40},B:{3:20,4:35,5:50}};
+function nums(s){return s.trim().split(/\s+/).map(Number);}
+function tiers(t0,t1,t2,t3){const o={};[t0,t1,t2,t3].forEach((l,i)=>l.split(" ").filter(Boolean).forEach(k=>o[k]=i));return o;}
+const A=[
+ {id:"finisher",n:"Finisher",pos:"Delantero",ins:"Alex Morgan",
+  s:"75 70 72 75 75 75 70 75 65 55 65 70 50 70 80 75 75 60 75 75 60 75 55 50 40 65 70 65 65",
+  c:"95 95 99 96 99 96 96 99 92 92 99 92 92 96 99 99 99 96 99 99 85 96 85 75 75 92 92 92 96",
+  t:tiers("rea vol","pos com pen cur agg fk jum sta","bal bc fin hea shp str vis ls cro lp sl da","acc agi dri sp spr st int"),
+  st:[3,5,"A",3,5,"B"],m:["com","fin"],g2:"First Touch+",p45:"1v1 Master",
+  sp:[["Finisher+","Chip Shot+",{bc:90,com:92,rea:90}],["Hunter","Gamechanger+",{pos:90,fin:90,cur:92}],["Presser","Relentless+",{agi:90,sta:92,agg:90}]]},
+ {id:"magician",n:"Magician",pos:"Delantero",ins:"Ronaldinho",
+  s:"75 70 72 75 75 75 75 72 75 65 65 75 50 75 80 75 70 65 72 75 50 65 45 40 40 60 65 65 55",
+  c:"95 95 99 99 99 96 96 96 96 92 99 96 92 99 96 99 92 96 96 99 82 85 82 75 75 85 90 92 92",
+  t:tiers("cur","pos bc pen rea vol fk sta agg jum","acc bal sp vis com shp cro ls str lp sl hea da","dri fin agi spr st int"),
+  st:[3,5,"B",3,5,"A"],m:["cur","acc"],g2:"Finesse Shot+",p45:"Ankle Breaker",
+  sp:[["Magician+","First Touch+",{acc:90,com:90,bc:92}],["Invader","Incisive Pass+",{pos:90,vis:90,lp:92}],["Hotshot","Power Shot+",{fin:90,shp:92,ls:90}]]},
+ {id:"spark",n:"Spark",pos:"Delantero / extremo",ins:"Luís Figo",
+  s:"75 75 75 75 75 75 75 72 75 75 65 75 65 75 80 65 65 65 72 75 55 50 50 55 45 55 65 65 50",
+  c:"99 95 99 96 99 96 99 96 96 99 99 96 92 96 96 96 92 92 96 99 85 85 85 80 75 85 90 92 92",
+  t:tiers("","pos cur pen rea vis vol fk sta agg jum","agi bal bc cro dri spr com lp ls shp str sl da hea","acc sp fin st int"),
+  st:[3,5,"A",3,5,"A"],m:["cro","dri"],g2:"Rapid+",p45:"Cut Back Specialist",
+  sp:[["Joker","Whipped Pass+",{pos:90,cro:92,lp:90}],["Spark+","Quick Step+",{agi:92,spr:90,acc:90}],["Ace","Chip Shot+",{rea:90,bc:90,fin:92}]]},
+ {id:"target",n:"Target",pos:"Delantero",ins:"Zlatan Ibrahimović",
+  s:"70 65 70 75 75 70 70 72 65 50 65 75 50 55 80 72 75 65 72 75 50 75 50 45 40 75 75 60 65",
+  c:"90 92 92 92 99 92 92 96 92 90 99 96 92 90 96 96 99 96 96 99 82 99 82 75 75 96 99 92 92",
+  t:tiers("jum","pos bal hea pen rea str vol agg fk sta cur","shp com bc ls vis cro lp sl da","sp fin acc agi dri spr st int"),
+  st:[2,5,"A",2,5,"B"],m:["bal","jum"],g2:"Enforcer+",p45:"Physical Shooter",
+  sp:[["Target+","Acrobatic+",{agi:90,jum:92,vol:90}],["Runner","Enforcer+",{spr:92,str:90,pos:90}],["Roamer","Incisive Pass+",{vis:90,lp:90,sp:92}]]},
+ {id:"creator",n:"Creator",pos:"Mediocampista",ins:"Andrés Iniesta",
+  s:"70 65 72 65 75 75 75 72 75 75 75 75 75 75 80 65 72 72 72 75 55 50 50 65 50 60 65 65 55",
+  c:"92 92 99 96 99 96 96 96 99 96 99 96 96 99 99 96 96 99 96 99 85 85 85 90 90 90 92 92 92",
+  t:tiers("cur","pos fk pen rea vis ls vol sta jum agg","bc cro dri lp com shp bal str sl da hea","sp agi acc fin spr st int"),
+  st:[2,5,"B",3,5,"A"],m:["fk","vis"],g2:"Inventive+",p45:"Bullseye Passer",
+  sp:[["Creator+","Whipped Pass+",{vis:92,cro:90,lp:90}],["Architect","Dead Ball+",{cro:92,fk:90,shp:90}],["Sniper","Power Shot+",{fin:90,shp:92,ls:90}]]},
+ {id:"maestro",n:"Maestro",pos:"Mediocampista",ins:"Toni Kroos",
+  s:"70 65 75 70 65 75 65 75 75 75 75 75 75 70 80 65 70 70 65 70 75 50 65 72 50 60 65 65 65",
+  c:"90 90 99 96 99 99 96 99 99 92 99 96 99 96 96 96 96 96 96 99 92 85 90 90 90 90 92 92 92",
+  t:tiers("rea","pos bc fk lp cur pen agg sta vol jum","agi com cro vis bal ls shp da str sl hea","int sp st acc dri fin spr"),
+  st:[2,5,"B",3,5,"A"],m:["rea","bc"],g2:"Long Ball Pass+",p45:"Eagle Eyes",
+  sp:[["Heartbeat","Relentless+",{agi:92,sta:90,agg:90}],["Crasher","First Touch+",{fin:90,bc:90,com:92}],["Maestro+","Technical+",{bal:90,vis:92,dri:90}]]},
+ {id:"disruptor",n:"Disruptor",pos:"Mediocampista",ins:"Roy Keane",
+  s:"75 70 68 75 70 65 65 70 65 65 50 75 70 65 70 50 70 65 65 65 75 65 70 70 75 65 75 75 70",
+  c:"92 92 92 96 99 92 92 92 90 96 95 96 92 90 90 90 92 85 90 92 92 90 92 92 92 92 96 99 96",
+  t:tiers("sta agg","pos rea cur jum pen vol fk","acc bal sl str com da lp shp st bc cro hea vis ls","int sp spr agi dri fin"),
+  st:[2,4,"B",3,5,"B"],m:["sta","int"],g2:"Relentless+",p45:"Presser",
+  sp:[["Disruptor+","Intercept+",{bal:90,rea:90,int:92}],["Destroyer","Slide Tackle+",{spr:90,str:92,sl:90}],["Anchor","Bruiser+",{bc:90,dri:90,sp:92}]]},
+ {id:"recycler",n:"Recycler",pos:"Mediocampista",ins:"Claude Makélélé",
+  s:"70 70 68 75 65 65 65 72 75 65 50 70 75 65 70 55 70 65 65 65 75 60 75 75 75 65 72 72 75",
+  c:"90 90 92 92 99 96 92 99 96 92 99 96 96 90 90 90 96 96 90 92 99 90 99 96 92 90 96 96 96",
+  t:tiers("","agg da sta str pos cur jum pen rea vol fk","bal int lp sl vis com sp shp bc cro ls hea","st acc spr agi dri fin"),
+  st:[2,4,"A",3,5,"A"],m:["da","sp"],g2:"Press Proven+",p45:"Physical Passer",
+  sp:[["Recycler+","Pinged Pass+",{str:90,lp:90,sp:92}],["Thief","Anticipate+",{int:90,da:90,st:92}],["Driver","Enforcer+",{spr:90,bal:92,str:90}]]},
+ {id:"boss",n:"Boss",pos:"Defensor",ins:"Nemanja Vidić",
+  s:"70 70 65 75 60 65 60 65 55 45 50 65 65 50 75 45 70 60 60 65 75 75 75 75 75 75 75 70 75",
+  c:"90 90 90 90 99 92 88 92 90 90 90 92 90 75 90 82 96 85 80 92 96 99 96 96 99 99 99 92 99",
+  t:tiers("agg jum","pos hea str sta pen rea fk cur vol","bal da sl shp bc com lp vis cro ls","int st acc spr agi sp fin dri"),
+  st:[2,3,"B",2,4,"B"],m:["agg","str"],g2:"Aerial Fortress+",p45:"Box Controller",
+  sp:[["Boss+","Slide Tackle+",{str:90,agg:90,sl:92}],["Capitano","Block+",{da:92,rea:90,agi:90}],["Enforcer","Press Proven+",{com:92,vis:90,bc:90}]]},
+ {id:"marauder",n:"Marauder",pos:"Defensor / lateral",ins:"Cafu",
+  s:"75 75 70 65 70 70 70 65 60 75 60 65 65 75 65 55 65 60 65 65 70 65 70 70 75 60 60 75 72",
+  c:"95 95 95 92 99 96 92 92 92 99 95 92 92 96 92 90 92 90 96 96 96 90 96 96 96 92 92 96 96",
+  t:tiers("sta","cro cur sl agg rea pos pen vol fk jum","spr bc da bal com hea lp shp ls str vis","acc agi dri int st sp fin"),
+  st:[2,5,"B",3,5,"A"],m:["sl","spr"],g2:"Whipped Pass+",p45:"Tackle and Run",
+  sp:[["Marauder+","Slide Tackle+",{spr:92,agg:90,sl:90}],["Athlete","Bruiser+",{str:92,agg:90,da:90}],["Speedster","Rapid+",{dri:90,spr:92,acc:90}]]},
+ {id:"progressor",n:"Progressor",pos:"Defensor",ins:"Fernando Hierro",
+  s:"70 72 70 70 65 70 65 75 75 50 45 75 75 50 70 50 65 50 50 65 75 75 75 75 75 75 70 65 65",
+  c:"92 92 92 92 99 96 92 96 92 92 90 96 96 85 90 85 92 85 75 92 96 96 99 99 96 99 96 92 96",
+  t:tiers("","com da jum lp pos bc agg pen rea sta fk vol cur","hea sl vis bal str shp cro ls","int sp st spr acc agi dri fin"),
+  st:[2,4,"B",3,4,"A"],m:["lp","st"],g2:"Anticipate+",p45:"Goalkeepers Favourite",
+  sp:[["Progressor+","Jockey+",{lp:90,da:90,st:92}],["Pioneer","Pinged Pass+",{dri:92,lp:90,sp:90}],["Janitor","Quick Step+",{acc:92,spr:90,sl:90}]]},
+ {id:"shotstopper",n:"Shot Stopper",pos:"Arquero",ins:"Gianluigi Buffon",gk:true,
+  s:"75 55 50 65 75 65 45 55 65 40 40 65 65 40 50 40 50 40 40 40 65 40 40 40 50 65 65 65 65 75 75 65 75 75",
+  c:"92 85 90 90 96 85 75 90 92 82 75 92 90 75 85 75 75 60 60 70 90 75 75 75 70 96 96 90 92 99 99 99 99 99",
+  t:tiers("rea","agg jum sta vol pen cur fk pos","acc gkd gkh gkr bal lp sp str vis com ls sl shp da hea bc cro","gkp gkk int agi dri fin st spr"),
+  st:null,m:["gkp","gkr"],g2:"Deflector+",p45:"Ready to Act",
+  sp:[["Shot Stopper+","Cross Claimer+",{jum:90,gkh:92,gkp:90}],["Octopus","Deflector+",{str:90,gkd:92,gkp:90}],["Spider","1v1 Close Down+",{acc:90,agi:90,gkr:92}]]},
+ {id:"sweeper",n:"Sweeper Keeper",pos:"Arquero",ins:"Edwin van der Sar",gk:true,
+  s:"75 65 65 70 75 65 65 75 75 40 40 50 75 40 50 40 50 45 40 55 75 65 40 50 65 75 70 75 75 75 65 75 75 75",
+  c:"92 88 90 90 96 90 85 92 99 85 75 92 96 75 85 75 75 60 60 80 96 90 75 85 90 99 96 92 96 99 99 99 99 99",
+  t:tiers("","agg jum lp rea sta vis bc vol cur fk pen pos","com gkd gkk gkp bal str hea sl ls shp da cro","acc gkr int agi gkh sp fin dri st spr"),
+  st:null,m:["gkh","gkd"],g2:"Cross Claimer+",p45:"Rush Specialist",
+  sp:[["Sweeper Keeper+","Far Throw+",{vis:90,gkd:92,gkk:90}],["Launcher","Long Ball Pass+",{lp:90,gkk:92,gkr:90}],["Extra","Press Proven+",{gkp:92,sp:90,com:90}]]}
+];
+// Firmas (1ª dorada desde nv 20, 2ª dorada en nv 55) y rango de altura (cm) / peso (kg)
+const EXTRA={finisher:[["Low Driven Shot","First Touch"],164,190,70,90],magician:[["Technical","Finesse Shot"],162,188,60,80],
+ spark:[["Trickster","Rapid"],162,188,60,80],target:[["Precision Header","Enforcer"],177,195,80,100],creator:[["Incisive Pass","Inventive"],162,188,65,85],
+ maestro:[["Pinged Pass","Long Ball Pass"],162,188,65,85],disruptor:[["Jockey","Relentless"],168,188,65,85],recycler:[["Intercept","Press Proven"],172,192,65,85],
+ boss:[["Bruiser","Aerial Fortress"],180,196,80,100],marauder:[["Quick Step","Whipped Pass"],168,188,65,85],progressor:[["Long Ball Pass","Anticipate"],177,195,75,95],
+ shotstopper:[["Far Reach","Deflector"],179,197,80,100],sweeper:[["Footwork","Cross Claimer"],184,200,80,100]};
+A.forEach(a=>{const s=nums(a.s),c=nums(a.c);a.S={};a.C={};K.forEach((k,i)=>{if(s[i]!=null){a.S[k]=s[i];a.C[k]=c[i];}});
+  const e=EXTRA[a.id];a.sig=e[0];a.hr=[e[1],e[2]];a.wr=[e[3],e[4]];a.hd=(e[1]+e[2])/2;a.wd=(e[3]+e[4])/2;});
+const PS=[["Remate",{"Acrobatic":"Mejores voleas","Chip Shot":"Vaselinas más rápidas y precisas","Dead Ball":"Pelota parada con más efecto y precisión","Finesse Shot":"Tiros colocados más rápidos y con más rosca","Gamechanger":"Tiros de fantasía y trivela más precisos","Low Driven Shot":"Tiros bajos y rasantes más precisos","Power Shot":"Tiros potentes más fuertes y precisos","Precision Header":"Cabezazos más precisos y potentes"}],
+ ["Pase",{"Incisive Pass":"Pases filtrados más precisos","Inventive":"Pases de fantasía y trivela más precisos","Long Ball Pass":"Pases largos y globos más rápidos y precisos","Pinged Pass":"Pases rasantes más rápidos sin complicar el control","Tiki Taka":"Pases cortos y de primera muy precisos","Whipped Pass":"Centros más rápidos, con rosca y precisos"}],
+ ["Control",{"First Touch":"Menos errores al recibir","Press Proven":"Mejor control y protección ante rivales fuertes","Rapid":"Más velocidad corriendo con la pelota","Technical":"Sprint controlado más rápido y giros precisos","Trickster":"Filigranas de taquito exclusivas"}],
+ ["Defensa",{"Aerial Fortress":"Salta más en duelos aéreos defensivos","Anticipate":"Entradas de pie con más éxito","Block":"Más alcance para bloquear","Intercept":"Más alcance al interceptar","Jockey":"Jockey en sprint más rápido","Slide Tackle":"Barridas que dejan la pelota al pie"}],
+ ["Físico",{"Bruiser":"Más fuerza en las entradas","Enforcer":"Mejores cargas y protección","Long Throw":"Laterales más largos","Quick Step":"Más aceleración en el arranque explosivo","Relentless":"Menos cansancio en el partido"}],
+ ["Arquero",{"1v1 Close Down":"Salidas mano a mano más agresivas","Cross Claimer":"Sale mejor a los centros","Deflector":"Desvía a zonas más seguras","Far Reach":"Estiradas más largas","Far Throw":"Saques con la mano más largos","Footwork":"Atajadas con los pies y tiros bajos"}]];
+const PSDESC=Object.assign({},...PS.map(g=>g[1]));
+const PSCAT={};PS.forEach(([g,m])=>Object.keys(m).forEach(n=>PSCAT[n]=g));
+// Mínimos para equipar cada PlayStyle (hay que cumplir todos). Los de arquero vienen de FC 26, sin confirmar en FC 27.
+const PSREQ={"Acrobatic":{agi:80,rea:80,vol:75},"Chip Shot":{rea:75,com:80,bc:80},"Dead Ball":{cro:80,fk:75,shp:80},"Finesse Shot":{vis:80,fin:75,cur:80},
+ "Gamechanger":{com:80,fin:75,cur:80},"Low Driven Shot":{com:80,fin:75,shp:80},"Power Shot":{fin:80,shp:75,ls:80},"Precision Header":{jum:80,agg:80,hea:75},
+ "Incisive Pass":{vis:75,lp:80,cur:80},"Inventive":{com:80,lp:75,cur:80},"Long Ball Pass":{vis:85,lp:80},"Pinged Pass":{lp:85,sp:80},
+ "Tiki Taka":{rea:80,bc:80,sp:75},"Whipped Pass":{cro:80,lp:75},"Aerial Fortress":{jum:75,hea:75},"Anticipate":{bal:80,da:75,st:80},
+ "Block":{agi:80,str:75,rea:80},"Intercept":{agg:80,int:80},"Jockey":{agi:75,da:80,st:80},"Slide Tackle":{agg:80,sl:75},
+ "First Touch":{com:80,bc:75},"Press Proven":{str:75,com:80,bc:80},"Rapid":{acc:75,spr:80,dri:80},"Technical":{bal:80,bc:75,dri:80},
+ "Trickster":{acc:80,agi:75,dri:80},"Bruiser":{str:75,agg:80,da:80},"Enforcer":{bal:80,str:75,bc:80},"Long Throw":{str:80,vis:75},
+ "Quick Step":{acc:75,spr:80,sta:80},"Relentless":{agi:80,sta:80},"1v1 Close Down":{acc:80,agi:75,agg:80},"Cross Claimer":{jum:80,str:80,gkp:75},
+ "Deflector":{str:75,gkd:80,gkr:75},"Far Reach":{agi:80,rea:80,gkd:75},"Far Throw":{vis:75,lp:75,gkk:80},"Footwork":{agi:80,bal:80,gkr:75}};
+// Íconos propios por categoría (no son los oficiales)
+const ICON={
+ "Remate":'<circle cx="15" cy="12" r="6"/><path d="M3 9h5M2 13h6M4 17h4"/>',
+ "Pase":'<circle cx="5" cy="17" r="2.5"/><path d="M7 15c4-8 9-10 14-9"/><path d="M17 3l4 3-3.5 3.5"/>',
+ "Control":'<circle cx="12" cy="15" r="5"/><path d="M12 10V4M9 6l3-3 3 3"/>',
+ "Defensa":'<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/>',
+ "Físico":'<path d="M13 2L5 13h6l-1 9 8-11h-6z"/>',
+ "Arquero":'<path d="M7 21v-7l-2-4a1.5 1.5 0 012.6-1.5L9 11V5a1.5 1.5 0 013 0v5V4a1.5 1.5 0 013 0v6V6a1.5 1.5 0 013 0v8c0 4-2 7-5 7z"/>'};
+// Íconos propios, uno por PlayStyle (trazos en una grilla de 24x24; no son los oficiales)
+const PSG={
+ "Acrobatic":'<circle cx="17" cy="5" r="2.5"/><path d="M4 20c2-7 7-11 13-12"/><path d="M9 13l-4-3"/>',
+ "Chip Shot":'<path d="M3 21h18"/><path d="M4 19C7 5 16 5 19 14" stroke-dasharray="2 2.5"/><circle cx="19" cy="17" r="2"/>',
+ "Dead Ball":'<circle cx="7" cy="17" r="3"/><path d="M10 15c4-8 9-9 11-5"/><path d="M19 7l2 3-3 1"/>',
+ "Finesse Shot":'<path d="M3 19c3-10 12-14 18-9"/><path d="M18 6l3 4-4 1"/><path d="M14 20v-6h7v6"/>',
+ "Gamechanger":'<path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z"/>',
+ "Low Driven Shot":'<path d="M3 21h18"/><path d="M3 16h15"/><path d="M15 13l4 3-4 3"/>',
+ "Power Shot":'<circle cx="16" cy="12" r="4.5"/><path d="M2 8h8M3 12h7M2 16h8"/>',
+ "Precision Header":'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+ "Incisive Pass":'<path d="M8 3v6M8 15v6M16 3v6M16 15v6"/><path d="M2 12h19"/><path d="M18 9l3 3-3 3"/>',
+ "Inventive":'<path d="M3 19c4 0 5-10 9-10s3 6 0 6-2-8 9-10"/><path d="M18 3l3 2-2 3"/>',
+ "Long Ball Pass":'<circle cx="4" cy="19" r="2"/><path d="M6 17C9 4 17 3 21 16"/><path d="M18 14l3 3 1-4"/>',
+ "Pinged Pass":'<circle cx="4" cy="12" r="2.5"/><path d="M8 9h12M8 15h12"/><path d="M17 6l4 3-4 3M17 12l4 3-4 3"/>',
+ "Tiki Taka":'<circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><circle cx="12" cy="5" r="2"/><path d="M7 18h10M6 16l5-9M13 7l5 9"/>',
+ "Whipped Pass":'<path d="M3 4v16"/><path d="M3 6c10 0 16 4 18 12"/><path d="M18 16l3 3 1-4"/>',
+ "First Touch":'<circle cx="12" cy="16" r="4"/><path d="M5 8c3-4 11-4 14 0"/><path d="M12 3v3"/>',
+ "Press Proven":'<circle cx="12" cy="12" r="4"/><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/>',
+ "Rapid":'<circle cx="17" cy="15" r="4"/><path d="M2 9h11M4 13h7M2 17h8"/><path d="M14 4l3 3-3 3"/>',
+ "Technical":'<circle cx="12" cy="12" r="3"/><path d="M12 4a8 8 0 1 1-8 8"/><path d="M2 9l2 3 3-2"/>',
+ "Trickster":'<circle cx="12" cy="18" r="3"/><path d="M3 4l5 5-5 3 7 2"/><path d="M21 4l-5 5 5 3-7 2"/>',
+ "Aerial Fortress":'<circle cx="12" cy="6" r="3"/><path d="M5 22v-9M12 22V12M19 22v-9"/><path d="M3 15l2-2 2 2M17 15l2-2 2 2"/>',
+ "Anticipate":'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ "Block":'<rect x="3" y="4" width="8" height="7"/><rect x="13" y="4" width="8" height="7"/><rect x="8" y="13" width="8" height="7"/>',
+ "Intercept":'<path d="M2 18L20 6"/><path d="M16 5l4 1-1 4"/><path d="M13 3v18"/>',
+ "Jockey":'<circle cx="12" cy="6" r="2.5"/><path d="M12 9v6"/><path d="M3 18h18"/><path d="M6 15l-3 3 3 3M18 15l3 3-3 3"/>',
+ "Slide Tackle":'<path d="M3 21h18"/><path d="M3 18l13-6"/><circle cx="19" cy="10" r="2.5"/>',
+ "Bruiser":'<path d="M3 12h6M15 12h6"/><path d="M6 9l3 3-3 3M18 9l-3 3 3 3"/><path d="M12 5v14"/>',
+ "Enforcer":'<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M8 12h8M13 9l3 3-3 3"/>',
+ "Long Throw":'<path d="M5 22V10M9 22V10"/><path d="M7 10C9 3 18 2 21 9"/><path d="M18 8l3 1v-3"/>',
+ "Quick Step":'<ellipse cx="7" cy="16" rx="2.5" ry="4"/><ellipse cx="14" cy="8" rx="2.5" ry="4"/><path d="M17 19h5M20 17l2 2-2 2"/>',
+ "Relentless":'<path d="M12 12c-2-3-4-5-6.5-5a5 5 0 0 0 0 10c2.5 0 4.5-2 6.5-5s4-5 6.5-5a5 5 0 0 1 0 10c-2.5 0-4.5-2-6.5-5z"/>',
+ "1v1 Close Down":'<circle cx="12" cy="12" r="2.5"/><path d="M3 4l5 5M21 4l-5 5M3 20l5-5M21 20l-5-5"/>',
+ "Cross Claimer":'<circle cx="12" cy="5" r="3"/><path d="M6 22v-8l-2-3M12 22v-9M18 22v-8l2-3"/>',
+ "Deflector":'<path d="M5 3v18"/><path d="M21 5L8 12l13 7"/>',
+ "Far Reach":'<path d="M4 20L20 4"/><path d="M15 4h5v5M9 20H4v-5"/>',
+ "Far Throw":'<circle cx="5" cy="18" r="2.5"/><path d="M7 16L21 4"/><path d="M15 4h6v6"/>',
+ "Footwork":'<ellipse cx="8" cy="9" rx="2.5" ry="4"/><ellipse cx="16" cy="15" rx="2.5" ry="4"/><path d="M3 21h18"/>'};
+function icon(n){const g=PSG[n]||(PSCAT[n]?ICON[PSCAT[n]]:"");return g?`<svg class="psi" viewBox="0 0 24 24" aria-hidden="true">${g}</svg>`:"";}
+// Insignia grande: dorada (PlayStyle+) o gris
+function badge(n,plus){const g=PSG[n]||"";
+  return `<figure class="psb ${plus?"gold":"grey"}" title="${esc(n)}${plus?"+":""}: ${esc(PSDESC[n]||"")}">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><path class="psb-bg" d="M24 2l19 11v22L24 46 5 35V13z"/><path class="psb-in" d="M24 6.5l15 8.7v17.6L24 41.5 9 32.8V15.2z"/>
+      <g class="psb-g" transform="translate(12 12)">${g}</g>${plus?'<g class="psb-plus"><circle cx="39" cy="9" r="7"/><path d="M39 5.5v7M35.5 9h7"/></g>':""}</svg>
+    <figcaption>${esc(n)}${plus?"+":""}</figcaption></figure>`;}
+const SLOT_LV=[5,15,40,55];
+const BYID=Object.fromEntries(A.map(a=>[a.id,a]));
+const AP41=[25,25,25,25,44,25,25,25,25,63,25,25,25,25,50];
+function budgetFor(l){if(l>=40){let t=962;for(let i=41;i<=l;i++)t+=AP41[i-41];return t;}return Math.round(962*l/40);}
+
+const $=id=>document.getElementById(id);
+const store={get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+let S=null;
+function fresh(id,level){const a=BYID[id];const v={};Object.keys(a.S).forEach(k=>v[k]=a.S[k]);
+  return {arch:id,level:level||55,v,sm:a.st?a.st[0]:0,wf:a.st?a.st[3]:0,mast:(S&&S.mast)||{},
+    h:Math.round(a.hd),w:Math.round(a.wd),ps:["","","",""],spec:null,rep:1,gender:(S&&S.gender==="f")?"f":"m"};}
+function sample(){// Ejemplo inicial: Finisher nivel 55 con Finisher+ cumplida
+  const s=fresh("finisher",55);Object.assign(s.v,{bc:90,com:92,rea:90,fin:92,acc:88,spr:84,pos:90,agi:84,shp:85,vol:80,sta:80,dri:80,cur:80,vis:80,ls:80});s.sm=4;s.wf=4;
+  s.h=175;s.w=74;s.ps=["Quick Step","Rapid","Finesse Shot","Power Shot"];s.spec=0;s.rep=1;return s;}
+S=store.get("pc27.current");
+if(!S||!BYID[S.arch]) S=sample();
+(function fix(){const a=BYID[S.arch];if(typeof S.h!=="number")S.h=Math.round(a.hd);if(typeof S.w!=="number")S.w=Math.round(a.wd);
+  if(S.gender!=="f")S.gender="m";if(!Array.isArray(S.ps))S.ps=["","","",""];if(S.spec===undefined)S.spec=null;if(S.rep!==0&&S.rep!==1)S.rep=1;})();
+
+// Altura y peso: se mide desde el centro del rango del arquetipo. Altura: 1 punto cada 4 cm; peso: 1 punto cada 8 kg.
+function bodyMods(){const a=arch(),o={};const dh=S.h-a.hd,dw=S.w-a.wd;
+  const hb=Math.sign(dh)*Math.ceil(Math.abs(dh)/4),wb=Math.sign(dw)*Math.ceil(Math.abs(dw)/8);
+  const add=(ks,n)=>ks.forEach(k=>{if(n&&k in a.S)o[k]=(o[k]||0)+n;});
+  if(!a.gk){add(["jum","spr","str"],hb);add(["acc","agi","bal"],-hb);add(["bal","jum","str"],wb);add(["acc","agi","spr"],-wb);}
+  else{add(["gkd","gkr","spr","str"],hb);add(["gkh","acc"],-hb);add(["gkh","str"],wb);add(["gkd","gkr","acc","spr"],-wb);}
+  return o;}
+// Valor con cuerpo y maestrías (lo que puede contar para requisitos)
+function baseFinal(k,bm){return Math.max(1,Math.min(99,S.v[k]+((bm||bodyMods())[k]||0)+bonus(k)));}
+// Instalaciones del club: se guardan aparte del build porque valen para todos
+let CLUB=store.get("pc27.club");
+if(!CLUB||!Array.isArray(CLUB.list))CLUB={budget:0,pBudget:0,bug:true,list:[]};
+// Nube. Dentro de Claude: la base de la página. En Netlify (o cualquier web): Supabase con login por mail.
+// Sin ninguna de las dos, todo queda en el navegador.
+const SB_URL="https://vrpogndxlecmxravqhiy.supabase.co",SB_KEY="sb_publishable_ZfE5CKZBMmeI61K2Kpq2HQ_0xAhK8EE";
+const SITE_URL="https://escabiadosbuild.netlify.app";
+let noPCol=false,MODE="local",DB=null,USER=null,ME=null,SB=null,SBUSER=null,SBMEMBER=false,SBNAME="",NAMES={},authMsg="",
+  cloudAll=[],cloudReady=false,readOnly=false,writeQ=Promise.resolve(),budgetT=null;
+function cloudErr(e){const c=e&&e.code;
+  if(c==="invalid_argument"||c==="not_granted"||c==="42501"||c==="PGRST301"){readOnly=true;toast("No tenés permiso para guardar en la nube");renderSaves();}
+  else if(c==="quota_exceeded")toast("La base de datos está llena: borrá builds viejos");
+  else toast("No se pudo guardar en la nube. Probá de nuevo.");}
+function cloudWrite(fn){writeQ=writeQ.then(fn).catch(cloudErr);return writeQ;}
+function saveClub(){store.set("pc27.club",CLUB);if(readOnly)return;
+  const body={budget:CLUB.budget,pBudget:CLUB.pBudget||0,bug:CLUB.bug,list:JSON.parse(JSON.stringify(CLUB.list))};
+  if(MODE==="claude")cloudWrite(()=>DB.doc("club/main").set(body));
+  else if(MODE==="supa")cloudWrite(async()=>{const row={presupuesto:body.budget,bug:body.bug,instalaciones:body.list,actualizado:new Date().toISOString()};
+    if(!noPCol)row.presupuesto_jugador=body.pBudget;
+    let {error}=await SB.from("club").update(row).eq("id",1);
+    if(error&&!noPCol&&/presupuesto_jugador|PGRST204|42703/.test((error.code||"")+" "+(error.message||""))){noPCol=true;delete row.presupuesto_jugador;({error}=await SB.from("club").update(row).eq("id",1));}
+    if(error)throw error;});}
+if(typeof CLUB.pBudget!=="number")CLUB.pBudget=0;
+// Líneas: cada instalación es para una línea; tu Pro recibe las de su línea
+const GRP={att:"Delanteros · ST, RW, LW",mid:"Medios · CDM, CM, RM, LM, CAM",def:"Defensores · CB, RB, LB",gk:"Arqueros · GK",all:"Todos"};
+const ARCHLINE={finisher:"att",magician:"att",spark:"att",target:"att",creator:"mid",maestro:"mid",disruptor:"mid",recycler:"mid",
+  boss:"def",marauder:"def",progressor:"def",shotstopper:"gk",sweeper:"gk"};
+function myLine(){return S.line||ARCHLINE[S.arch]||"att";}
+function facLineOk(f){const g=f.grp||"all";return g==="all"||g===myLine()||(f.type==="ai"&&S.facAllLines);}
+function facActive(f){return f.on&&facLineOk(f)&&(f.type==="player"||(f.type==="ai"&&CLUB.bug));}
+const fmt=n=>Number(n||0).toLocaleString("es-AR");
+// Las instalaciones de IA del club (capturas del juego, temporada 2)
+const PRESET_FAC=[
+  {name:"Assistant Yoga Instructor",grp:"att",cost:300000,boosts:{bal:3,agi:3}},
+  {name:"Sprint Track",grp:"att",cost:300000,boosts:{spr:3,bc:3}},
+  {name:"Sports Scientist",grp:"att",cost:300000,boosts:{acc:3,rea:3}},
+  {name:"Assistant Conditioning Coach",grp:"mid",cost:100000,boosts:{agi:2,vol:2}},
+  {name:"AI Footwork Specialist",grp:"def",cost:200000,boosts:{agi:2,bc:2}},
+  {name:"AI Speed Parachute",grp:"def",cost:300000,boosts:{acc:3,spr:3}}];
+function facBonus(k){if(!(k in arch().S))return 0;return CLUB.list.reduce((s,f)=>s+(facActive(f)?(+f.boosts[k]||0):0),0);}
+// Valor final: suma instalaciones y puede pasar el tope del arquetipo (máximo 99). No cuenta para requisitos.
+function finalVal(k,bm){return Math.max(1,Math.min(99,baseFinal(k,bm)+facBonus(k)));}
+// Límites de altura del AcceleRATE por género (FC 27). Jugadora: Explosiva hasta 6'0" (probado en el juego); Larga desde 172 cm (publicado por EA).
+const ACC_H={m:{exp:182,len:183},f:{exp:184,len:172}};
+const accH=()=>ACC_H[S.gender==="f"?"f":"m"];
+const isF=()=>S.gender==="f";
+function accelerate(){const bm=bodyMods(),acc=finalVal("acc",bm),agi=finalVal("agi",bm),str=finalVal("str",bm),L=accH(),f=isF();
+  if(S.h<=L.exp&&agi>=65&&agi-str>=10&&acc>=80)return [f?"Explosiva":"Explosivo","Arranque muy rápido, más lento al final"];
+  if(S.h>=L.len&&str>=65&&str-agi>=4&&acc>=40)return [f?"Larga":"Largo","Arranque lento, gana velocidad en distancias largas"];
+  return [f?"Controlada":"Controlado","Aceleración pareja"];}
+function ftin(cm){const t=cm/2.54;let f=Math.floor(t/12),i=Math.round(t-f*12);if(i===12){f++;i=0;}return `${f}'${i}"`;}
+// Valor que se usa para los requisitos: lo comprado con AP, o el final (con altura, peso y maestrías) si está activado
+function reqVal(k){return S.useFinal?baseFinal(k):S.v[k];}
+function reqTarget(k,t){return t-(S.useFinal?baseFinal(k)-S.v[k]:0);}
+function needAP(k,t){const a=arch();if(!(k in a.S))return Infinity;const tgt=reqTarget(k,t);if(tgt>a.C[k])return Infinity;return tgt>S.v[k]?cost(S.v[k],tgt,a.t[k]):0;}
+function missing(req){let ap=0;const miss=[];Object.entries(req).forEach(([k,t])=>{const v=(k in arch().S)?reqVal(k):0;if(v<t){miss.push([k,v,t]);ap+=needAP(k,t);}});return {ap,miss};}
+function applyReq(req){const a=arch();Object.entries(req).forEach(([k,t])=>{const tgt=Math.min(a.C[k],reqTarget(k,t));if(S.v[k]<tgt)S.v[k]=tgt;});}
+function specMet(i){return missing(arch().sp[i][2]).miss.length===0;}
+function activeSpec(){return S.spec!=null&&arch().sp[S.spec]&&specMet(S.spec)?S.spec:null;}
+
+function arch(){return BYID[S.arch];}
+function attrCost(k){const a=arch();return cost(a.S[k],S.v[k],a.t[k]);}
+function starCost(){const a=arch();if(!a.st)return 0;let s=0;
+  for(let x=a.st[0]+1;x<=S.sm;x++)s+=SM[a.st[2]][x];for(let x=a.st[3]+1;x<=S.wf;x++)s+=WF[a.st[5]][x];return s;}
+function spent(){return Object.keys(S.v).reduce((t,k)=>t+attrCost(k),0)+starCost();}
+function bonus(k){let b=0;A.forEach(a=>{const lv=a.id===S.arch?S.level:(S.mast[a.id]||0);
+  if(lv>=10){if(a.m[0]===k)b++;if(a.m[1]===k)b++;} if(lv>=30&&a.m[1]===k)b++; if(lv>=55&&a.m[0]===k)b++;});return b;}
+
+function buildArchSelect(){const sel=$("arch");sel.innerHTML="";
+  [["Delanteros",["finisher","magician","spark","target"]],["Mediocampistas",["creator","maestro","disruptor","recycler"]],["Defensores",["boss","marauder","progressor"]],["Arqueros",["shotstopper","sweeper"]]]
+  .forEach(([g,ids])=>{const og=document.createElement("optgroup");og.label=g;ids.forEach(id=>{const o=document.createElement("option");o.value=id;o.textContent=BYID[id].n;og.appendChild(o);});sel.appendChild(og);});}
+
+function renderGroups(){const a=arch(),box=$("groups");box.innerHTML="";
+  GROUPS.forEach(([gname,keys])=>{const ks=keys.filter(k=>k in a.S);if(!ks.length)return;
+    const g=document.createElement("div");g.className="group";
+    g.innerHTML=`<h2>${gname}<span class="num" data-gsum="${gname}"></span></h2>`;
+    ks.forEach(k=>{const r=document.createElement("div");r.className="row";r.dataset.k=k;
+      r.innerHTML=`<div class="name"><i class="dot d${a.t[k]}" title="Costo: ${TIERNAME[a.t[k]]}"></i><b>${NAME[k]}</b><span class="bonus"></span></div>
+      <div class="trackbox"><div class="track"><div class="rail"></div><div class="base"></div><div class="buy" style="background:var(--t${a.t[k]})"></div>
+        <input type="range" id="r_${k}" min="40" max="99" aria-label="${NAME[k]}"></div>
+        <div class="scale num"><span>inicio ${a.S[k]}</span><span>tope ${a.C[k]}</span></div></div>
+      <div class="stepper"><button type="button" data-d="-1" aria-label="Bajar ${NAME[k]}">−</button><span class="v num"></span><button type="button" data-d="1" aria-label="Subir ${NAME[k]}">+</button></div>
+      <div class="cost num"><b></b><small></small></div>`;
+      const inp=r.querySelector("input");
+      inp.addEventListener("input",()=>{let val=+inp.value;val=Math.max(a.S[k],Math.min(a.C[k],val));S.v[k]=val;update();});
+      r.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{S.v[k]=Math.max(a.S[k],Math.min(a.C[k],S.v[k]+ +b.dataset.d));update();}));
+      g.appendChild(r);});
+    box.appendChild(g);});}
+
+function pct(v){return (v-40)/59*100;}
+function update(){const a=arch(),B=budgetFor(S.level),U=spent(),R=B-U;
+  $("levelOut").textContent=S.level;$("level").value=S.level;$("arch").value=S.arch;
+  $("archName").textContent=a.n;$("archInfo").textContent=`${a.pos} · inspirado en ${a.ins}`;
+  $("budgetFig").innerHTML=`${U} <span>/ ${B} AP${S.level<40?" aprox.":""}</span>`;
+  $("mobAP").innerHTML=`<b>${U}</b><small>/ ${B} AP</small>`;$("mobAP").classList.toggle("over",R<0);$("mobAP").title=R<0?`Te pasaste por ${-R} AP`:`Te quedan ${R} AP`;
+  const m=$("meter");m.classList.toggle("over",R<0);m.firstElementChild.style.width=Math.min(100,U/B*100)+"%";
+  $("budgetNote").innerHTML=R>=0?`Te quedan <b>${R} AP</b> · al nivel 55 tendrías 1419`:`<span class="over-txt">Te pasaste por ${-R} AP</span>`;
+  const bm=bodyMods(),ar=accelerate();
+  $("tbAttr").textContent=`${U} AP`;$("tbBody").textContent=`${S.h} cm`;
+  $("archInfo").innerHTML=`${a.pos} · inspirado en ${a.ins} · <span class="chip ok" title="${ar[1]}">AcceleRATE: ${ar[0]}</span>`;
+  document.querySelectorAll(".row").forEach(r=>{const k=r.dataset.k,v=S.v[k],t=a.t[k];
+    const inp=r.querySelector("input");inp.value=v;
+    r.querySelector(".base").style.cssText=`left:0;width:${pct(a.S[k])}%`;
+    r.querySelector(".buy").style.left=pct(a.S[k])+"%";r.querySelector(".buy").style.width=(pct(v)-pct(a.S[k]))+"%";
+    r.querySelector(".v").textContent=v;
+    const mb=bonus(k),bb=bm[k]||0,fb=facBonus(k),fv=finalVal(k,bm),d=fv-v,el=r.querySelector(".bonus");
+    el.textContent=d?`${d>0?"+":"−"}${Math.abs(d)} → ${fv}`:"";el.classList.toggle("neg",d<0);el.classList.toggle("over",fv>a.C[k]);
+    el.title=d?[bb?`Altura y peso: ${bb>0?"+":""}${bb}`:"",mb?`Maestrías: +${mb}`:"",fb?`Instalaciones: +${fb}`:"",fv>a.C[k]?`Pasa el tope del arquetipo (${a.C[k]})`:""].filter(Boolean).join(" · "):"";
+    const [dn,up]=r.querySelectorAll("button");dn.disabled=v<=a.S[k];up.disabled=v>=a.C[k];
+    const c=attrCost(k);r.querySelector(".cost b").textContent=c?`${c} AP`:"—";
+    r.querySelector(".cost small").textContent=v<a.C[k]?`+1: ${price(v+1,t)} AP`:"al tope";
+    up.title=v<a.C[k]?`Siguiente punto: ${price(v+1,t)} AP`:"Está al tope";});
+  GROUPS.forEach(([g,keys])=>{const el=document.querySelector(`[data-gsum="${g}"]`);if(el)el.textContent=keys.filter(k=>k in a.S).reduce((t,k)=>t+attrCost(k),0)+" AP";});
+  renderBody(bm);renderPS();renderFac();renderSummary(bm);renderStars();renderSpecs();renderMiles();renderMast();
+  store.set("pc27.current",S);}
+
+function pips(n,max){let s="";for(let i=1;i<=5;i++)s+=i<=n?"★":(i<=max?'<span class="off">★</span>':"");return s;}
+function renderStars(){const a=arch(),box=$("stars");
+  if(!a.st){box.innerHTML='<p class="hint" style="margin:0">Los arqueros no compran filigranas ni pierna mala.</p>';return;}
+  const rows=[["sm","Filigranas",a.st[0],a.st[1],SM[a.st[2]]],["wf","Pierna mala",a.st[3],a.st[4],WF[a.st[5]]]];
+  box.innerHTML=rows.map(([key,lbl,mn,mx,tab])=>{const cur=S[key];const next=cur<mx?`siguiente: ${tab[cur+1]} AP`:"al máximo";
+    return `<div class="starrow"><div class="lbl">${lbl}<small>${mn}★ → ${mx}★ · ${next}</small></div>
+    <div class="stepper"><button type="button" data-s="${key}" data-d="-1" ${cur<=mn?"disabled":""} aria-label="Bajar ${lbl}">−</button><span class="pips">${pips(cur,mx)}</span><button type="button" data-s="${key}" data-d="1" ${cur>=mx?"disabled":""} aria-label="Subir ${lbl}">+</button></div></div>`;}).join("");
+  box.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.s,mn=k==="sm"?a.st[0]:a.st[3],mx=k==="sm"?a.st[1]:a.st[4];
+    S[k]=Math.max(mn,Math.min(mx,S[k]+ +b.dataset.d));update();}));}
+
+function renderSpecs(){const a=arch(),box=$("specs");
+  box.innerHTML=a.sp.map(([n,ps,req],i)=>{const need=missing(req).ap;const parts=Object.entries(req).map(([k,t])=>{const v=reqVal(k);
+      return `<span class="${v>=t?"met":"miss"}">${NAME[k]} ${Math.min(v,t)}/${t}</span>`;});
+    const ok=need===0,inUse=S.spec===i;
+    return `<div class="spec${inUse?" inuse":""}"><div class="spec-h"><b>${n}</b><span class="chip ${ok?"ok":"no"}">${ok?(inUse?"En uso":"Cumplida"):"Faltan "+need+" AP"}</span></div>
+      <div class="ps">${ps}</div><div class="req num">${parts.join("")}</div>
+      <div class="spec-act">${ok?"":`<button class="btn" type="button" data-sp="${i}">Subir lo que falta</button>`}
+      ${inUse?`<button class="btn" type="button" data-use="${i}">Quitar</button>`:`<button class="btn${ok?" primary":""}" type="button" data-use="${i}">${ok?"Usar":"Elegir"}</button>`}</div>
+      ${inUse&&!ok?`<p class="hint warn-txt">Elegida, pero no cumplís los requisitos: su PlayStyle+ no se aplica.</p>`:""}</div>`;}).join("");
+  box.querySelectorAll("[data-sp]").forEach(b=>b.addEventListener("click",()=>{const req=a.sp[+b.dataset.sp][2];
+    applyReq(req);update();toast("Requisitos aplicados");}));
+  box.querySelectorAll("[data-use]").forEach(b=>b.addEventListener("click",()=>{const i=+b.dataset.use;S.spec=S.spec===i?null:i;update();
+    toast(S.spec===null?"Especialización quitada":`${a.sp[i][0]} elegida`);}));}
+
+// Altura y peso
+function renderBody(bm){const a=arch(),ar=accelerate();
+  const hb=$("hIn"),wb=$("wIn");hb.min=a.hr[0];hb.max=a.hr[1];wb.min=a.wr[0];wb.max=a.wr[1];hb.value=S.h;wb.value=S.w;
+  $("hOut").textContent=`${S.h} cm · ${ftin(S.h)}`;$("wOut").textContent=`${S.w} kg · ${Math.round(S.w*2.2046)} lb`;
+  $("hRange").textContent=`${a.hr[0]}–${a.hr[1]} cm · base ${a.hd}`;$("wRange").textContent=`${a.wr[0]}–${a.wr[1]} kg · base ${a.wd}`;
+  // Tabla: todos los atributos que el cuerpo puede mover en este arquetipo
+  const keys=a.gk?["acc","spr","str","gkd","gkh","gkr"]:["acc","spr","agi","bal","jum","str"];
+  $("bodyTable").innerHTML=`<table><thead><tr><th>Atributo</th><th>Comprado</th><th>Cuerpo</th><th>Maestrías</th><th>Instal.</th><th>Final</th></tr></thead><tbody>${
+    keys.map(k=>{const b=bm[k]||0,m=bonus(k),f=facBonus(k);return `<tr><td>${NAME[k]}</td><td class="num">${S.v[k]}</td>
+      <td class="num ${b>0?"up":b<0?"down":"same"}">${b>0?"+"+b:b<0?"−"+(-b):"0"}</td><td class="num ${m?"up":"same"}">${m?"+"+m:"0"}</td><td class="num ${f?"up":"same"}">${f?"+"+f:"0"}</td>
+      <td class="num fin">${finalVal(k,bm)}</td></tr>`;}).join("")}</tbody></table>`;
+  ["m","f"].forEach(g=>{const b=$(g==="m"?"gM":"gF");const on=(S.gender||"m")===g;b.classList.toggle("sel",on);b.setAttribute("aria-checked",on);});
+  // AcceleRATE con cada condición
+  const acc=finalVal("acc",bm),agi=finalVal("agi",bm),str=finalVal("str",bm);
+  const ck=(ok,t)=>`<li class="${ok?"ok":"no"}"><span>${ok?"✓":"✕"}</span>${t}</li>`;
+  $("accelBox").innerHTML=`<div class="accbig"><b>${ar[0]}</b><span>${ar[1]}</span></div>
+    <div class="accgrid">
+      <div><h4>${isF()?"Explosiva":"Explosivo"}</h4><ul class="cklist">${ck(S.h<=accH().exp,`Altura ${accH().exp} cm o menos (${S.h})`)}${ck(agi>=65,`Agilidad 65+ (${agi})`)}${ck(agi-str>=10,`Agilidad 10 sobre Fuerza (${agi-str>=0?"+":""}${agi-str})`)}${ck(acc>=80,`Aceleración 80+ (${acc})`)}</ul></div>
+      <div><h4>${isF()?"Larga":"Largo"}</h4><ul class="cklist">${ck(S.h>=accH().len,`Altura ${accH().len} cm o más (${S.h})`)}${ck(str>=65,`Fuerza 65+ (${str})`)}${ck(str-agi>=4,`Fuerza 4 sobre Agilidad (${str-agi>=0?"+":""}${str-agi})`)}${ck(acc>=40,`Aceleración 40+ (${acc})`)}</ul></div>
+    </div><p class="hint">Si no cumplís todas las condiciones de uno de los dos, quedás ${isF()?"Controlada":"Controlado"}. Se calcula con los valores finales.${isF()?" Para jugadoras los límites de altura son otros: Explosiva hasta 6'0\" y Larga desde 5'8\".":""}</p>`;}
+$("useFinal").addEventListener("change",e=>{S.useFinal=e.target.checked;update();});
+$("hIn").addEventListener("input",e=>{S.h=+e.target.value;update();});
+document.querySelectorAll(".gender [data-g]").forEach(b=>b.addEventListener("click",()=>{S.gender=b.dataset.g;update();toast(S.gender==="f"?"Jugadora":"Jugador");}));
+$("wIn").addEventListener("input",e=>{S.w=+e.target.value;update();});
+$("bodyReset").addEventListener("click",()=>{const a=arch();S.h=Math.round(a.hd);S.w=Math.round(a.wd);update();});
+
+// Lee el mensaje real de error que devuelve una función de Supabase (si no, solo dice "non-2xx status code")
+async function sbFnError(error){try{if(error&&error.context&&typeof error.context.json==="function"){const b=await error.context.json();if(b&&b.error)return b.error;}}catch(e){}return (error&&error.message)||String(error);}
+// Leer build desde una foto (IA con visión, vía función de Supabase)
+function resizeImageFile(file,maxW){return new Promise((resolve,reject)=>{
+  const img=new Image();const url=URL.createObjectURL(file);
+  img.onload=()=>{const scale=Math.min(1,maxW/img.width),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+    const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+    cv.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    resolve(cv.toDataURL("image/jpeg",0.82).split(",")[1]);};
+  img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("no pude abrir la imagen"));};img.src=url;});}
+function applyPhotoBuild(d){
+  if(d.archetype&&BYID[d.archetype]&&d.archetype!==S.arch){S=fresh(d.archetype,S.level);}
+  const a=arch();let n=0;
+  if(d.attrs)Object.entries(d.attrs).forEach(([k,v])=>{if(k in a.S&&typeof v==="number"&&isFinite(v)){S.v[k]=Math.max(a.S[k],Math.min(a.C[k],Math.round(v)));n++;}});
+  if(typeof d.height_cm==="number"&&isFinite(d.height_cm))S.h=Math.max(a.hr[0],Math.min(a.hr[1],Math.round(d.height_cm)));
+  if(typeof d.weight_kg==="number"&&isFinite(d.weight_kg))S.w=Math.max(a.wr[0],Math.min(a.wr[1],Math.round(d.weight_kg)));
+  showTab("atributos");update();
+  return n;}
+$("photoBtn").addEventListener("click",()=>{
+  if(MODE!=="supa"){toast("Necesitás iniciar sesión (y ser miembro del club) para usar esto");return;}
+  $("photoInput").click();});
+$("photoInput").addEventListener("change",async e=>{
+  const file=e.target.files[0];e.target.value="";if(!file)return;
+  const st=$("photoStatus"),btn=$("photoBtn");st.textContent="Leyendo la foto…";btn.disabled=true;
+  try{
+    const b64=await resizeImageFile(file,1100);
+    const {data,error}=await SB.functions.invoke("leer-build",{body:{image:b64,archetype:S.arch}});
+    if(error)throw new Error(await sbFnError(error));
+    if(data&&data.error)throw new Error(data.error);
+    const n=applyPhotoBuild(data||{});
+    const bits=[];if(n)bits.push(`${n} atributos`);if(typeof (data||{}).height_cm==="number")bits.push("altura");if(typeof (data||{}).weight_kg==="number")bits.push("peso");
+    st.textContent=(data&&data.nota)?data.nota:(bits.length?`Listo, cargué ${bits.join(" y ")}. Revisalos.`:"No reconocí ningún valor en la foto, probá con otra.");
+  }catch(err){st.textContent="No se pudo leer la foto: "+(err&&err.message?err.message:err);}
+  finally{btn.disabled=false;}});
+
+// Estadísticas del club (API pública de EA). EA bloquea los pedidos automáticos
+// (desde servidor o desde el navegador por CORS), así que esto se carga pegando
+// a mano el JSON de los 4 links — se guarda para todo el club.
+function resultado(mio,rival){const g=+mio.goals,ga=+mio.goalsAgainst;return g>ga?"G":g<ga?"P":"E";}
+const EA_POSL={forward:"Delantero",midfielder:"Mediocampista",defender:"Defensor",goalkeeper:"Arquero"};
+let EA_SORT={key:"ratingAve",dir:-1},EA_LAST_MEM=[];
+const EA_COLS=[
+  {k:"name",l:"Jugador"},
+  {k:"proName",l:"Nombre pro"},
+  {k:"favoritePosition",l:"Posición",f:v=>EA_POSL[v]||v||"—"},
+  {k:"proOverall",l:"Overall"},
+  {k:"proHeight",l:"Altura",f:v=>v?v+" cm":"—"},
+  {k:"gamesPlayed",l:"PJ"},
+  {k:"winRate",l:"Victorias",f:v=>v||v===0?v+"%":"—"},
+  {k:"goals",l:"Goles"},
+  {k:"assists",l:"Asist."},
+  {k:"shotSuccessRate",l:"Prec. tiro",f:v=>v||v===0?v+"%":"—"},
+  {k:"passesMade",l:"Pases"},
+  {k:"passSuccessRate",l:"Prec. pase",f:v=>v||v===0?v+"%":"—"},
+  {k:"tacklesMade",l:"Entradas"},
+  {k:"tackleSuccessRate",l:"Prec. entrada",f:v=>v||v===0?v+"%":"—"},
+  {k:"cleanSheetsDef",l:"V.inv. def"},
+  {k:"cleanSheetsGK",l:"V.inv. ark"},
+  {k:"ratingAve",l:"Rating",f:v=>v?(+v).toFixed(1):"—"},
+  {k:"manOfTheMatch",l:"MOTM"},
+  {k:"redCards",l:"Rojas"},
+];
+function eaRenderPlayers(mem){
+  const sorted=[...mem].sort((a,b)=>{
+    const av=a[EA_SORT.key],bv=b[EA_SORT.key];
+    const an=parseFloat(av),bn=parseFloat(bv);
+    const c=(!isNaN(an)&&!isNaN(bn))?(an-bn):String(av||"").localeCompare(String(bv||""));
+    return c*EA_SORT.dir;
+  });
+  const arrow=k=>k!==EA_SORT.key?"":(EA_SORT.dir===1?" ▲":" ▼");
+  $("eaPlayers").innerHTML=`<table><thead><tr>${
+    EA_COLS.map(c=>`<th data-key="${c.k}"${c.k===EA_SORT.key?' class="sorted"':""}>${esc(c.l)}${arrow(c.k)}</th>`).join("")
+  }</tr></thead><tbody>${
+    sorted.map(m=>`<tr>${EA_COLS.map(c=>{
+      const raw=m[c.k];
+      const val=c.f?c.f(raw):(raw===undefined||raw===null||raw===""?"—":raw);
+      return `<td>${esc(String(val))}</td>`;
+    }).join("")}</tr>`).join("")
+  }</tbody></table>`;
+}
+$("eaPlayers").addEventListener("click",e=>{
+  const th=e.target.closest("th[data-key]");if(!th)return;
+  const k=th.dataset.key;
+  if(EA_SORT.key===k)EA_SORT.dir=-EA_SORT.dir;
+  else{EA_SORT.key=k;EA_SORT.dir=(k==="name"||k==="proName"||k==="favoritePosition")?1:-1;}
+  eaRenderPlayers(EA_LAST_MEM);
+});
+function renderEaStats(d){
+  const cid=String(d.clubId);
+  $("eaRaw").textContent=JSON.stringify(d,null,2);$("eaRawBox").hidden=false;
+  // Récord
+  const ov=(d.overall||[])[0];
+  if(ov){$("eaRecordCard").hidden=false;
+    const racha=(+ov.wstreak>0)?`${ov.wstreak} seguidas`:((+ov.unbeatenstreak>0)?`${ov.unbeatenstreak} seguidas`:"—");
+    const rachaLbl=(+ov.wstreak>0)?"Racha ganando":((+ov.unbeatenstreak>0)?"Racha invicto":"Racha");
+    const stat=(v,l,cls)=>`<div class="stat${cls?" "+cls:""}"><b>${v}</b><span>${l}</span></div>`;
+    $("eaRecord").innerHTML=`<div class="statgrid">
+      ${stat(ov.gamesPlayed??"—","PJ")}
+      ${stat(`${ov.wins??0}-${ov.ties??0}-${ov.losses??0}`,"G-E-P")}
+      ${stat(`${ov.goals??0}-${ov.goalsAgainst??0}`,"Goles a favor-en contra")}
+      ${stat(racha,rachaLbl,"ok")}
+      ${stat(ov.skillRating??"—","Rating de habilidad")}
+      ${stat(ov.bestDivision??"—","Mejor división")}
+      ${stat(`${ov.promotions??0} / ${ov.relegations??0}`,"Ascensos / descensos")}
+    </div>`;}
+  // Jugadores
+  const mem=(d.members&&d.members.members)||[];
+  if(mem.length){$("eaPlayersCard").hidden=false;EA_LAST_MEM=mem;eaRenderPlayers(mem);}
+  // Partidos
+  eaRenderMatchList("eaMatchesCard","eaMatches",d.matches||[],cid);
+  // Playoffs
+  eaRenderMatchList("eaPlayoffsCard","eaPlayoffs",d.playoffs||[],cid);
+}
+function eaRenderMatchList(cardId,boxId,matches,cid){
+  if(!matches.length){$(cardId).hidden=true;return;}
+  $(cardId).hidden=false;
+  $(boxId).innerHTML=matches.map(m=>{
+    const mio=m.clubs&&m.clubs[cid];const rivalId=Object.keys(m.clubs||{}).find(k=>k!==cid);const rival=rivalId&&m.clubs[rivalId];
+    if(!mio||!rival)return "";
+    const res=resultado(mio);const cls=res==="G"?"ok":res==="P"?"no":"draw";
+    const fecha=m.timestamp?new Date(m.timestamp*1000).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit"}):"";
+    const players=[...(m.players||[])].sort((a,b)=>(+b.rating||0)-(+a.rating||0));
+    const pHtml=players.length?players.map(p=>{
+      const bits=[];
+      if(+p.goals>0)bits.push(`${p.goals}⚽`);
+      if(+p.assists>0)bits.push(`${p.assists}🅰`);
+      if(+p.redcards>0)bits.push("🟥");
+      return `<div class="mprow"><span class="mpname">${esc(p.name||"—")}</span><span class="mpdetail">${bits.join(" ")}</span>
+        <b class="mprating">${p.rating?(+p.rating).toFixed(1):"—"}</b>${p.mom==="1"?'<span class="chip ok">MOTM</span>':""}</div>`;
+    }).join(""):`<p class="hint">No hay datos de jugadores para este partido.</p>`;
+    return `<details class="matchdet"><summary class="matchrow"><div class="mres ${cls}">${res}</div>
+      <div class="mwho"><b>${esc((rival.details&&rival.details.name)||"Rival")}</b><small>${fecha}</small></div>
+      <div class="mscore num">${mio.goals??0}<span>-</span>${rival.goals??0}</div><span class="mchev">▾</span></summary>
+      <div class="matchplayers">${pHtml}</div></details>`;
+  }).join("")||`<p class="hint">No hay partidos recientes.</p>`;
+}
+// ====== DATOS DEL CLUB (EA) — Beto se los pasa a Claude cada tanto, Claude los pega acá ======
+// Para actualizar: reemplazar este objeto entero con los nuevos datos y listo.
+const EA_CLUBS=[
+ {id:"51969",name:"Escabiados",data:{at:"2026-10-28T10:53:00-03:00",clubId:"51969",
+ overall:[{"clubId":"51969","bestDivision":"4","bestFinishGroup":"2","gamesPlayed":"109","gamesPlayedPlayoff":"12","goals":"239","goalsAgainst":"147","promotions":"5","relegations":"3","losses":"35","ties":"14","wins":"60","wstreak":"8","unbeatenstreak":"8","skillRating":"1817","reputationtier":"1","leagueAppearances":"97"}],
+ members:{"members":[{"name":"kideih","proName":"Kideih","favoritePosition":"forward","proOverall":"82","proHeight":"181","gamesPlayed":"39","winRate":"61","goals":"68","assists":"12","shotSuccessRate":"40","passesMade":"546","passSuccessRate":"82","tacklesMade":"48","tackleSuccessRate":"17","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"8.1","manOfTheMatch":"16","redCards":"0"},{"name":"Mapsi88","proName":"Mapsi","favoritePosition":"midfielder","proOverall":"82","proHeight":"175","gamesPlayed":"51","winRate":"52","goals":"8","assists":"35","shotSuccessRate":"17","passesMade":"664","passSuccessRate":"67","tacklesMade":"58","tackleSuccessRate":"21","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.3","manOfTheMatch":"4","redCards":"0"},{"name":"CELozanoV","proName":"MURALLA","favoritePosition":"midfielder","proOverall":"76","proHeight":"178","gamesPlayed":"96","winRate":"55","goals":"19","assists":"35","shotSuccessRate":"36","passesMade":"2110","passSuccessRate":"81","tacklesMade":"150","tackleSuccessRate":"37","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.9","manOfTheMatch":"18","redCards":"0"},{"name":"wifoxela","proName":"W. De Turris","favoritePosition":"forward","proOverall":"79","proHeight":"175","gamesPlayed":"32","winRate":"59","goals":"6","assists":"5","shotSuccessRate":"66","passesMade":"432","passSuccessRate":"75","tacklesMade":"31","tackleSuccessRate":"25","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.2","manOfTheMatch":"0","redCards":"1"},{"name":"nah5555nah","proName":"el 1","favoritePosition":"midfielder","proOverall":"81","proHeight":"180","gamesPlayed":"52","winRate":"50","goals":"18","assists":"10","shotSuccessRate":"37","passesMade":"885","passSuccessRate":"85","tacklesMade":"51","tackleSuccessRate":"29","cleanSheetsDef":"0","cleanSheetsGK":"1","ratingAve":"7.3","manOfTheMatch":"4","redCards":"0"},{"name":"Albocando","proName":"Ocando","favoritePosition":"forward","proOverall":"84","proHeight":"177","gamesPlayed":"64","winRate":"64","goals":"57","assists":"43","shotSuccessRate":"30","passesMade":"1439","passSuccessRate":"80","tacklesMade":"108","tackleSuccessRate":"38","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"8.4","manOfTheMatch":"32","redCards":"0"},{"name":"Veetor14","proName":"","favoritePosition":"","proOverall":"0","proHeight":"","gamesPlayed":"0","winRate":"0","goals":"0","assists":"0","shotSuccessRate":"0","passesMade":"0","passSuccessRate":"0","tacklesMade":"0","tackleSuccessRate":"0","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"0.0","manOfTheMatch":"0","redCards":"0"},{"name":"Naitpvp8752","proName":"","favoritePosition":"","proOverall":"0","proHeight":"","gamesPlayed":"0","winRate":"0","goals":"0","assists":"0","shotSuccessRate":"0","passesMade":"0","passSuccessRate":"0","tacklesMade":"0","tackleSuccessRate":"0","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"0.0","manOfTheMatch":"0","redCards":"0"}]},
+ matches:[{"matchId":"82272133740053","timestamp":1791513062,"clubs":{"51969":{"goals":"4","goalsAgainst":"0","details":{"name":"Escabiados"}},"416131":{"goals":"0","goalsAgainst":"4","details":{"name":"don bosco RM"}}},"players":[{"name":"kideih","goals":"2","assists":"0","rating":"8.60","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"1","assists":"1","rating":"8.60","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"1","assists":"1","rating":"8.80","mom":"1","redcards":"0","pos":"midfielder"}]},{"matchId":"82140369690230","timestamp":1791512031,"clubs":{"46773":{"goals":"1","goalsAgainst":"1","details":{"name":"Unos peda"}},"51969":{"goals":"1","goalsAgainst":"1","details":{"name":"Escabiados"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.40","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.50","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"81932635620362","timestamp":1791510685,"clubs":{"51969":{"goals":"3","goalsAgainst":"3","details":{"name":"Escabiados"}},"507673":{"goals":"3","goalsAgainst":"3","details":{"name":"La Fabricaa"}}},"players":[{"name":"kideih","goals":"2","assists":"1","rating":"8.40","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"1","assists":"0","rating":"7.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.50","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"81978572480356","timestamp":1791509558,"clubs":{"51969":{"goals":"3","goalsAgainst":"0","details":{"name":"Escabiados"}},"507673":{"goals":"0","goalsAgainst":"3","details":{"name":"La Fabricaa"}}},"players":[{"name":"kideih","goals":"0","assists":"0","rating":"6.50","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"0","rating":"5.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"5.90","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"78642668160459","timestamp":1791430080,"clubs":{"51969":{"goals":"4","goalsAgainst":"2","details":{"name":"Escabiados"}},"628030":{"goals":"2","goalsAgainst":"4","details":{"name":"DePanaFC"}}},"players":[{"name":"kideih","goals":"4","assists":"0","rating":"10.00","mom":"1","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.30","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.60","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.80","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"78864124000343","timestamp":1791428592,"clubs":{"51969":{"goals":"1","goalsAgainst":"1","details":{"name":"Escabiados"}},"1439275":{"goals":"1","goalsAgainst":"1","details":{"name":"Ibipeba FC"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.50","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"8.50","mom":"1","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.60","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.00","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"78744297800366","timestamp":1791427475,"clubs":{"51969":{"goals":"1","goalsAgainst":"1","details":{"name":"Escabiados"}},"419563":{"goals":"1","goalsAgainst":"1","details":{"name":"RESCATE FC"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.60","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"6.50","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.80","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.00","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"78532663430206","timestamp":1791425981,"clubs":{"51969":{"goals":"1","goalsAgainst":"1","details":{"name":"Escabiados"}},"141718":{"goals":"1","goalsAgainst":"1","details":{"name":"La Legion"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.00","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"1","rating":"7.20","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"6.20","mom":"0","redcards":"0","pos":"forward"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.70","mom":"0","redcards":"1","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"8.40","mom":"1","redcards":"0","pos":"midfielder"}]},{"matchId":"78384824410135","timestamp":1791424873,"clubs":{"51969":{"goals":"2","goalsAgainst":"0","details":{"name":"Escabiados"}},"337226":{"goals":"0","goalsAgainst":"2","details":{"name":"Jrimian FC"}}},"players":[{"name":"kideih","goals":"2","assists":"0","rating":"8.00","mom":"1","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"0","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"1","rating":"7.30","mom":"0","redcards":"0","pos":"forward"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.00","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.70","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"71452429980499","timestamp":1791259736,"clubs":{"51969":{"goals":"2","goalsAgainst":"3","details":{"name":"Escabiados"}},"1381671":{"goals":"3","goalsAgainst":"2","details":{"name":"atun fc"}}},"players":[{"name":"CELozanoV","goals":"0","assists":"1","rating":"9.10","mom":"1","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"2","assists":"0","rating":"8.80","mom":"0","redcards":"0","pos":"midfielder"}]}],
+ playoffs:[{"matchId":"112226618990085","timestamp":1792271788,"clubs":{"51969":{"goals":"3","goalsAgainst":"1","details":{"name":"Escabiados"}},"203539":{"goals":"1","goalsAgainst":"3","details":{"name":"GYE FC"}}},"players":[{"name":"Mapsi88","goals":"0","assists":"2","rating":"8.30","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"1","assists":"1","rating":"8.80","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"9.90","mom":"1","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"1","assists":"0","rating":"7.80","mom":"0","redcards":"0","pos":"forward"}]},{"matchId":"112328262510079","timestamp":1792270554,"clubs":{"51969":{"goals":"6","goalsAgainst":"1","details":{"name":"Escabiados"}},"1210108":{"goals":"1","goalsAgainst":"6","details":{"name":"Fecha Libre SpA"}}},"players":[{"name":"Mapsi88","goals":"0","assists":"2","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"1","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"1","assists":"0","rating":"8.60","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"4","assists":"1","rating":"10.00","mom":"1","redcards":"0","pos":"forward"}]},{"matchId":"112078558500427","timestamp":1792269151,"clubs":{"34826":{"goals":"4","goalsAgainst":"5","details":{"name":"IMPERIAL CLUB"}},"51969":{"goals":"5","goalsAgainst":"4","details":{"name":"Escabiados"}}},"players":[{"name":"Mapsi88","goals":"1","assists":"0","rating":"8.10","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"1","assists":"3","rating":"10.00","mom":"1","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"3","assists":"2","rating":"10.00","mom":"0","redcards":"0","pos":"forward"}]},{"matchId":"112012623860470","timestamp":1792267945,"clubs":{"51969":{"goals":"4","goalsAgainst":"0","details":{"name":"Escabiados"}},"1657187":{"goals":"0","goalsAgainst":"4","details":{"name":"fccolychili"}}},"players":[{"name":"Mapsi88","goals":"0","assists":"3","rating":"8.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"4","assists":"0","rating":"10.00","mom":"1","redcards":"0","pos":"forward"}]},{"matchId":"111938918580292","timestamp":1792267415,"clubs":{"51969":{"goals":"3","goalsAgainst":"0","details":{"name":"Escabiados"}},"54515":{"goals":"0","goalsAgainst":"3","details":{"name":"SAMBIQUIRA FC"}}},"players":[{"name":"Mapsi88","goals":"0","assists":"1","rating":"7.50","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"1","rating":"8.30","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"3","assists":"0","rating":"10.00","mom":"1","redcards":"0","pos":"forward"}]},{"matchId":"106174885880020","timestamp":1792117506,"clubs":{"51969":{"goals":"5","goalsAgainst":"0","details":{"name":"Escabiados"}},"170492":{"goals":"0","goalsAgainst":"5","details":{"name":"Fimous FC"}}},"players":[{"name":"kideih","goals":"4","assists":"1","rating":"10.00","mom":"1","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"0","rating":"6.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"1","assists":"1","rating":"8.70","mom":"0","redcards":"0","pos":"forward"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.20","mom":"0","redcards":"0","pos":"forward"},{"name":"Albocando","goals":"0","assists":"3","rating":"10.00","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"106186815310210","timestamp":1792116877,"clubs":{"51969":{"goals":"3","goalsAgainst":"0","details":{"name":"Escabiados"}},"529081":{"goals":"0","goalsAgainst":"3","details":{"name":"Bøla Gorda FC"}}},"players":[{"name":"kideih","goals":"2","assists":"1","rating":"9.20","mom":"1","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"1","assists":"0","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.80","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"1","rating":"7.20","mom":"0","redcards":"0","pos":"forward"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.40","mom":"0","redcards":"0","pos":"forward"},{"name":"Albocando","goals":"0","assists":"1","rating":"8.30","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"106166818300110","timestamp":1792115896,"clubs":{"51969":{"goals":"3","goalsAgainst":"0","details":{"name":"Escabiados"}},"399587":{"goals":"0","goalsAgainst":"3","details":{"name":"Fielescinhos FC"}}},"players":[{"name":"kideih","goals":"0","assists":"0","rating":"5.70","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"0","rating":"6.60","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"8.40","mom":"1","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"5.50","mom":"0","redcards":"0","pos":"forward"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.10","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"106170760390219","timestamp":1792115510,"clubs":{"51969":{"goals":"2","goalsAgainst":"3","details":{"name":"Escabiados"}},"1024630":{"goals":"3","goalsAgainst":"2","details":{"name":"Dsprto La Gorda"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.60","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"1","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.70","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"1","assists":"0","rating":"7.10","mom":"0","redcards":"0","pos":"forward"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.70","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"106158695910498","timestamp":1792114347,"clubs":{"51969":{"goals":"4","goalsAgainst":"0","details":{"name":"Escabiados"}},"868874":{"goals":"0","goalsAgainst":"4","details":{"name":"MamadisimosCF"}}},"players":[{"name":"kideih","goals":"3","assists":"0","rating":"9.20","mom":"1","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"2","rating":"8.10","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.50","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.80","mom":"0","redcards":"0","pos":"forward"},{"name":"nah5555nah","goals":"1","assists":"0","rating":"8.50","mom":"0","redcards":"0","pos":"midfielder"}]}]}},
+ {id:"208525",name:"Escabioneta",data:{"at":"2026-10-28T11:54:00-03:00","clubId":"208525","overall":[{"clubId":"208525","bestDivision":"2","bestFinishGroup":"4","gamesPlayed":"144","gamesPlayedPlayoff":"25","goals":"334","goalsAgainst":"218","promotions":"8","relegations":"2","losses":"41","ties":"26","wins":"77","wstreak":"0","unbeatenstreak":"2","skillRating":"1835","reputationtier":"1","leagueAppearances":"119"}],"members":{"members":[{"name":"kideih","proName":"Kideih","favoritePosition":"forward","proOverall":"85","proHeight":"185","gamesPlayed":"137","winRate":"52","goals":"226","assists":"34","shotSuccessRate":"35","passesMade":"2505","passSuccessRate":"83","tacklesMade":"202","tackleSuccessRate":"23","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"8.0","manOfTheMatch":"39","redCards":"0"},{"name":"Mapsi88","proName":"Mapsi","favoritePosition":"midfielder","proOverall":"84","proHeight":"178","gamesPlayed":"37","winRate":"56","goals":"7","assists":"30","shotSuccessRate":"25","passesMade":"509","passSuccessRate":"69","tacklesMade":"65","tackleSuccessRate":"30","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.5","manOfTheMatch":"5","redCards":"0"},{"name":"CELozanoV","proName":"MURALLA","favoritePosition":"midfielder","proOverall":"77","proHeight":"188","gamesPlayed":"109","winRate":"54","goals":"2","assists":"10","shotSuccessRate":"10","passesMade":"1822","passSuccessRate":"81","tacklesMade":"129","tackleSuccessRate":"31","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.5","manOfTheMatch":"13","redCards":"1"},{"name":"wifoxela","proName":"W. De Turris","favoritePosition":"midfielder","proOverall":"83","proHeight":"175","gamesPlayed":"31","winRate":"45","goals":"3","assists":"9","shotSuccessRate":"14","passesMade":"441","passSuccessRate":"72","tacklesMade":"17","tackleSuccessRate":"11","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"6.8","manOfTheMatch":"1","redCards":"0"},{"name":"nah5555nah","proName":"el 1","favoritePosition":"midfielder","proOverall":"80","proHeight":"181","gamesPlayed":"87","winRate":"49","goals":"12","assists":"21","shotSuccessRate":"30","passesMade":"1349","passSuccessRate":"83","tacklesMade":"106","tackleSuccessRate":"29","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.2","manOfTheMatch":"2","redCards":"0"},{"name":"Albocando","proName":"Ocando","favoritePosition":"forward","proOverall":"78","proHeight":"181","gamesPlayed":"113","winRate":"56","goals":"37","assists":"90","shotSuccessRate":"20","passesMade":"2059","passSuccessRate":"75","tacklesMade":"228","tackleSuccessRate":"34","cleanSheetsDef":"0","cleanSheetsGK":"0","ratingAve":"7.9","manOfTheMatch":"30","redCards":"2"}]},"matches":[{"matchId":"145282200150378","timestamp":1793158141,"clubs":{"208525":{"goals":"2","goalsAgainst":"2","details":{"name":"Escabioneta"}},"427116":{"goals":"2","goalsAgainst":"2","details":{"name":"Pelusa CF"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.70","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.20","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.50","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.50","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"0","assists":"1","rating":"7.20","mom":"0","redcards":"0","pos":"forward"}]},{"matchId":"145280160980194","timestamp":1793156997,"clubs":{"208525":{"goals":"1","goalsAgainst":"1","details":{"name":"Escabioneta"}},"770752":{"goals":"1","goalsAgainst":"1","details":{"name":"Take Care"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.20","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"6.00","mom":"0","redcards":"0","pos":"forward"},{"name":"Albocando","goals":"0","assists":"1","rating":"7.60","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"144890928530381","timestamp":1793155754,"clubs":{"208525":{"goals":"1","goalsAgainst":"2","details":{"name":"Escabioneta"}},"388520":{"goals":"2","goalsAgainst":"1","details":{"name":"the imbatibl3s"}}},"players":[{"name":"kideih","goals":"1","assists":"0","rating":"7.50","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.30","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.10","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.10","mom":"0","redcards":"0","pos":"forward"},{"name":"Albocando","goals":"0","assists":"1","rating":"7.30","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"144870875220248","timestamp":1793154474,"clubs":{"208525":{"goals":"5","goalsAgainst":"3","details":{"name":"Escabioneta"}},"340142":{"goals":"3","goalsAgainst":"5","details":{"name":"Queridinhos"}}},"players":[{"name":"kideih","goals":"2","assists":"3","rating":"10.00","mom":"1","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"1","assists":"0","rating":"7.80","mom":"0","redcards":"0","pos":"forward"}]},{"matchId":"145028612520268","timestamp":1793153162,"clubs":{"208525":{"goals":"0","goalsAgainst":"0","details":{"name":"Escabioneta"}},"331870":{"goals":"0","goalsAgainst":"0","details":{"name":"Artilleros FC"}}},"players":[{"name":"kideih","goals":"0","assists":"0","rating":"6.70","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"6.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.40","mom":"1","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.20","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"0","assists":"0","rating":"6.80","mom":"0","redcards":"0","pos":"forward"}]},{"matchId":"144900668140481","timestamp":1793150839,"clubs":{"208525":{"goals":"2","goalsAgainst":"0","details":{"name":"Escabioneta"}},"222104":{"goals":"0","goalsAgainst":"2","details":{"name":"Real Fumaca"}}},"players":[{"name":"kideih","goals":"1","assists":"1","rating":"7.90","mom":"1","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"1","rating":"6.80","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.30","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"144978522040058","timestamp":1793149757,"clubs":{"59377":{"goals":"0","goalsAgainst":"3","details":{"name":"RED DEVILS SP"}},"208525":{"goals":"3","goalsAgainst":"0","details":{"name":"Escabioneta"}}},"players":[{"name":"kideih","goals":"0","assists":"0","rating":"6.20","mom":"0","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"0","rating":"6.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"8.80","mom":"1","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.20","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"144924445590338","timestamp":1793149028,"clubs":{"47403":{"goals":"3","goalsAgainst":"4","details":{"name":"Andes United fc"}},"208525":{"goals":"4","goalsAgainst":"3","details":{"name":"Escabioneta"}}},"players":[{"name":"kideih","goals":"3","assists":"0","rating":"9.50","mom":"1","redcards":"0","pos":"forward"},{"name":"Mapsi88","goals":"0","assists":"3","rating":"8.40","mom":"0","redcards":"0","pos":"midfielder"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"7.10","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"6.50","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"0","rating":"7.90","mom":"0","redcards":"0","pos":"forward"}]},{"matchId":"144978309300319","timestamp":1793147636,"clubs":{"208525":{"goals":"2","goalsAgainst":"2","details":{"name":"Escabioneta"}},"415926":{"goals":"2","goalsAgainst":"2","details":{"name":"Real Valor FC"}}},"players":[{"name":"kideih","goals":"2","assists":"0","rating":"8.60","mom":"0","redcards":"0","pos":"forward"},{"name":"CELozanoV","goals":"0","assists":"0","rating":"8.90","mom":"1","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"0","rating":"7.00","mom":"0","redcards":"0","pos":"midfielder"},{"name":"nah5555nah","goals":"0","assists":"2","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"}]},{"matchId":"144450916280009","timestamp":1793143149,"clubs":{"208525":{"goals":"2","goalsAgainst":"1","details":{"name":"Escabioneta"}},"340535":{"goals":"1","goalsAgainst":"2","details":{"name":"Manacá Legends"}}},"players":[{"name":"Mapsi88","goals":"0","assists":"1","rating":"7.90","mom":"0","redcards":"0","pos":"midfielder"},{"name":"wifoxela","goals":"0","assists":"1","rating":"7.20","mom":"0","redcards":"0","pos":"midfielder"},{"name":"Albocando","goals":"2","assists":"0","rating":"8.30","mom":"1","redcards":"0","pos":"forward"}]}],"playoffs":[]}},
+];
+let EA_ACTIVE=0;
+// ===============================================================================================
+function eaRenderSubtabs(){
+  $("clubSubtabs").innerHTML=EA_CLUBS.map((c,i)=>`<button type="button" class="subtab${i===EA_ACTIVE?" on":""}" data-i="${i}">${esc(c.name)}</button>`).join("");
+}
+$("clubSubtabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-i]");if(!b)return;
+  EA_ACTIVE=+b.dataset.i;renderEaTab();
+});
+function renderEaTab(){
+  eaRenderSubtabs();
+  const cur=EA_CLUBS[EA_ACTIVE],d=cur&&cur.data;
+  if(!d){["eaRecordCard","eaPlayersCard","eaMatchesCard","eaPlayoffsCard","eaRawBox"].forEach(id=>$(id).hidden=true);
+    $("eaStatus").textContent=`Todavía no hay datos cargados para ${cur?esc(cur.name):"este club"}.`;return;}
+  renderEaStats(d);
+  $("eaStatus").textContent="Última actualización: "+(d.at?new Date(d.at).toLocaleString("es-AR"):"—");}
+
+// PlayStyles
+function renderPS(){const a=arch(),sp=activeSpec(),special=sp!=null&&a.sp[sp][1]===a.sig[1]+"+";
+  const gold=[{n:a.sig[0],plus:S.level>=20,why:S.level>=20?"Firma · dorado desde nivel 20":"Firma · pasa a dorado en nivel 20"},
+              {n:a.sig[1],plus:S.level>=55||special,why:special?`Firma · dorado por ${a.sp[sp][0]}`:(S.level>=55?"Firma · dorado en nivel 55":"Firma · pasa a dorado en nivel 55")}];
+  if(sp!=null&&!special){gold[S.rep]={n:a.sp[sp][1].replace("+",""),plus:true,why:`Especialización ${a.sp[sp][0]} (reemplaza a ${a.sig[S.rep]})`,spec:true};}
+  $("gold").innerHTML=gold.map(g=>`<div class="pstile ${g.plus?"plus":"plain"}${g.spec?" spec":""}" title="${PSDESC[g.n]||""}"><b>${icon(g.n)}${g.n}${g.plus?"+":""}</b><small>${g.why}</small></div>`).join("");
+  const rep=$("repBox");
+  if(sp!=null&&!special){rep.hidden=false;rep.innerHTML=`<span>${a.sp[sp][1]} reemplaza a</span>${a.sig.map((n,i)=>`<button type="button" class="btn${S.rep===i?" primary":""}" data-rep="${i}">${n}</button>`).join("")}`;
+    rep.querySelectorAll("[data-rep]").forEach(b=>b.addEventListener("click",()=>{S.rep=+b.dataset.rep;update();}));}
+  else{rep.hidden=true;rep.innerHTML="";}
+  const taken=new Set(gold.map(g=>g.n));
+  // Los arqueros también pueden usar PlayStyles de campo; los de arquero son solo para ellos
+  const cats=a.gk?PS:PS.filter(g=>g[0]!=="Arquero");
+  const short=k=>NAME[k].replace(" (GK)","");
+  const reqHTML=n=>Object.entries(PSREQ[n]).map(([k,t])=>{const v=(k in a.S)?reqVal(k):0;return `<span class="${v>=t?"met":"miss"}">${short(k)} ${Math.min(v,t)}/${t}</span>`;}).join("");
+  const openIdx=SLOT_LV.map((lv,i)=>S.level>=lv?i:-1).filter(i=>i>=0);
+  const freeSlot=openIdx.find(i=>!S.ps[i]);
+  // Espacios
+  $("slots").innerHTML=SLOT_LV.map((lv,i)=>{const open=S.level>=lv,cur=S.ps[i]||"";
+    if(!open)return `<div class="pslot locked"><span class="sn">${i+1}</span><div><b>Bloqueado</b><small>Se abre en el nivel ${lv}</small></div></div>`;
+    if(!cur)return `<div class="pslot empty"><span class="sn">${i+1}</span><div><b>Vacío</b><small>Elegí uno del catálogo</small></div></div>`;
+    const clash=taken.has(cur),m=missing(PSREQ[cur]),bad=clash||m.miss.length;
+    let note="";
+    if(clash)note=`<p class="psd warn-txt">Ya lo tenés como dorado: este espacio está desperdiciado.</p>`;
+    else if(m.miss.length)note=`<p class="psd warn-txt">No cumplís los requisitos, no se aplica.${m.ap!==Infinity?` <button type="button" class="linkbtn" data-fix="${i}">Subir lo que falta (${m.ap} AP)</button>`:" Tu arquetipo no llega a esos valores."}</p>`;
+    return `<div class="pslot${bad?" bad":" on"}"><span class="sn">${icon(cur)}</span><div class="pb"><b>${cur}</b><small>${PSDESC[cur]||""}</small>
+      <div class="req psreq num">${reqHTML(cur)}</div>${note}</div>
+      <button type="button" class="btn x" data-clear="${i}" aria-label="Quitar ${cur}">Quitar</button></div>`;}).join("");
+  $("slots").querySelectorAll("[data-clear]").forEach(b=>b.addEventListener("click",()=>{S.ps[+b.dataset.clear]="";update();}));
+  $("slots").querySelectorAll("[data-fix]").forEach(b=>b.addEventListener("click",()=>{applyReq(PSREQ[S.ps[+b.dataset.fix]]);update();toast("Requisitos aplicados");}));
+  // Catálogo
+  const only=!!S.psOnly;let shown=0;
+  $("catalog").innerHTML=cats.map(([g,mm])=>{const items=Object.keys(mm).map(n=>{
+      const inSlot=openIdx.some(i=>S.ps[i]===n),gold=taken.has(n),r=missing(PSREQ[n]);
+      let st,cls,act="";
+      if(gold){st="Dorado";cls="gold";}
+      else if(inSlot){st="Equipado";cls="on";act=`<button type="button" class="btn" data-rm="${n}">Quitar</button>`;}
+      else if(r.miss.length){st=r.ap===Infinity?"No alcanzable":`Faltan ${r.ap} AP`;cls="lock";}
+      else{st="Disponible";cls="free";act=freeSlot!=null?`<button type="button" class="btn primary" data-add="${n}">Agregar</button>`:`<span class="nofree">Sin espacios libres</span>`;}
+      if(only&&cls!=="free"&&cls!=="on")return "";
+      shown++;
+      return `<article class="pscard ${cls}"><header>${icon(n)}<b>${n}</b><span class="chip">${st}</span></header>
+        <p>${mm[n]}</p><div class="req psreq num">${reqHTML(n)}</div>${act?`<div class="pa">${act}</div>`:""}</article>`;}).join("");
+    return items.trim()?`<div class="catg"><h4>${icon(Object.keys(mm)[0])}${g}</h4><div class="cards">${items}</div></div>`:"";}).join("")
+    ||`<p class="hint">Con tus atributos actuales no podés equipar ningún plateado nuevo. Subí atributos en la pestaña Atributos.</p>`;
+  $("catalog").querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{const i=SLOT_LV.findIndex((lv,j)=>S.level>=lv&&!S.ps[j]);
+    if(i<0)return;S.ps[i]=b.dataset.add;update();toast(`${b.dataset.add} agregado`);}));
+  $("catalog").querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{S.ps=S.ps.map(p=>p===b.dataset.rm?"":p);update();}));
+  const used=openIdx.filter(i=>S.ps[i]&&!taken.has(S.ps[i])&&!missing(PSREQ[S.ps[i]]).miss.length).length;
+  $("psCount").textContent=`${used}/${openIdx.length} activos`;$("tbPs").textContent=`${used}/${openIdx.length}`;
+  $("useFinal").checked=!!S.useFinal;$("psOnly").checked=only;}
+
+function renderMiles(){const a=arch();
+  const ms=[[5,"Ranura de PlayStyle 1"],[10,`Perk de firma 1 · maestría (+1 ${NAME[a.m[0]]}, +1 ${NAME[a.m[1]]})`],[15,"Ranura de PlayStyle 2"],
+    [20,"PlayStyle de firma pasa a +"],[30,`Maestría: +1 ${NAME[a.m[1]]}`],[40,"Ranura de PlayStyle 3 · 962 AP"],[45,`Perk de firma 2: ${a.p45}`],
+    [50,"Mejora de carta · +63 AP"],[55,`Segundo dorado: ${a.g2} · ranura 4 · +1 ${NAME[a.m[0]]}`]];
+  $("miles").innerHTML=ms.map(([l,t])=>`<li class="${S.level>=l?"done":"todo"}"><span class="l">${l}</span><span>${S.level>=l?"✓ ":""}${t}</span></li>`).join("");}
+
+function renderMast(){const box=$("mast"),sh=k=>NAME[k].replace(" (GK)","");
+  box.innerHTML=A.map(a=>{const own=a.id===S.arch;const lv=own?S.level:(S.mast[a.id]||0);
+    const steps=[[10,`+1 ${sh(a.m[0])}, +1 ${sh(a.m[1])}`],[30,`+1 ${sh(a.m[1])}`],[55,`+1 ${sh(a.m[0])}`]];
+    const seg=own?`<p class="ownlv">Es tu arquetipo: usa tu nivel actual (${S.level}).</p>`
+      :`<div class="seg" role="radiogroup" aria-label="Nivel de ${a.n}">${[0,10,30,55].map(x=>`<button type="button" role="radio" aria-checked="${lv===x}" class="${lv===x?"sel":""}" data-m="${a.id}" data-lv="${x}">${x?x+"+":"—"}</button>`).join("")}</div>`;
+    return `<article class="mcard${own?" own":""}${lv>=10?" act":""}"><header><b>${a.n}</b><small>${a.pos}</small></header>
+      <ul class="msteps">${steps.map(([l,t])=>`<li class="${lv>=l?"ok":""}"><span class="num">${l}</span>${t}</li>`).join("")}</ul>${seg}</article>`;}).join("");
+  box.querySelectorAll("[data-m]").forEach(b=>b.addEventListener("click",()=>{S.mast[b.dataset.m]=+b.dataset.lv;update();}));
+  // Resumen total
+  const tot={};K.forEach(k=>{if(k in arch().S){const b=bonus(k);if(b)tot[k]=b;}});
+  const ks=Object.keys(tot).sort((x,y)=>tot[y]-tot[x]);
+  $("mastSum").innerHTML=ks.length?ks.map(k=>`<span class="up">${sh(k)} +${tot[k]}</span>`).join(""):`<span class="same">Todavía ninguna. Marcá hasta qué nivel llevaste cada arquetipo.</span>`;
+  $("tbMast").textContent=ks.length?"+"+ks.reduce((s,k)=>s+tot[k],0):"";}
+
+// Instalaciones
+let facEdit=null,fRows=[["spr",2]];
+const attrOpts=sel=>K.map(k=>`<option value="${k}" ${k===sel?"selected":""}>${NAME[k]}</option>`).join("");
+function renderFForm(){$("fBoosts").innerHTML=fRows.map(([k,n],i)=>`<div class="fb"><select data-fk="${i}" aria-label="Atributo ${i+1}">${attrOpts(k)}</select>
+  <span>+</span><input type="number" data-fn="${i}" min="1" max="20" step="1" value="${n}" class="numin sm" aria-label="Puntos"><button type="button" class="btn x" data-fdel="${i}" aria-label="Quitar atributo">✕</button></div>`).join("");
+  $("fBoosts").querySelectorAll("[data-fk]").forEach(s=>s.addEventListener("change",()=>{fRows[+s.dataset.fk][0]=s.value;}));
+  $("fBoosts").querySelectorAll("[data-fn]").forEach(s=>s.addEventListener("input",()=>{fRows[+s.dataset.fn][1]=+s.value;}));
+  $("fBoosts").querySelectorAll("[data-fdel]").forEach(b=>b.addEventListener("click",()=>{fRows.splice(+b.dataset.fdel,1);renderFForm();}));}
+function resetFForm(){facEdit=null;fRows=[["spr",2]];$("fName").value="";$("fType").value="ai";$("fGrp").value="att";$("fCost").value=0;$("fErr").hidden=true;
+  $("facFormTitle").textContent="Agregar instalación";$("fCancel").hidden=true;renderFForm();}
+$("fAddBoost").addEventListener("click",()=>{fRows.push(["acc",1]);renderFForm();});
+$("fCancel").addEventListener("click",resetFForm);
+$("fSave").addEventListener("click",()=>{const name=$("fName").value.trim(),boosts={};
+  fRows.forEach(([k,n])=>{if(n>0)boosts[k]=(boosts[k]||0)+Math.round(n);});
+  const err=!name?"Poné un nombre.":!Object.keys(boosts).length?"Agregá al menos un atributo con puntos.":"";
+  if(err){$("fErr").textContent=err;$("fErr").hidden=false;return;}
+  const f={id:facEdit||("f"+Date.now()),name,type:$("fType").value,grp:$("fGrp").value,cost:Math.max(0,+$("fCost").value||0),boosts,on:true};
+  const i=CLUB.list.findIndex(x=>x.id===f.id);if(i>=0){f.on=CLUB.list[i].on;CLUB.list[i]=f;}else CLUB.list.push(f);
+  saveClub();toast(i>=0?"Instalación actualizada":"Instalación agregada");resetFForm();update();});
+$("facBudget").addEventListener("input",e=>{CLUB.budget=Math.max(0,+e.target.value||0);clearTimeout(budgetT);budgetT=setTimeout(saveClub,700);update();});
+$("facBudgetP").addEventListener("input",e=>{CLUB.pBudget=Math.max(0,+e.target.value||0);clearTimeout(budgetT);budgetT=setTimeout(saveClub,700);update();});
+$("facBug").addEventListener("change",e=>{CLUB.bug=e.target.checked;saveClub();update();});
+$("facLine").addEventListener("change",e=>{S.line=e.target.value||null;update();});
+$("facAllLines").addEventListener("change",e=>{S.facAllLines=e.target.checked;update();});
+$("presetBtn").addEventListener("click",()=>{let n=0;
+  PRESET_FAC.forEach((p,i)=>{if(!CLUB.list.some(f=>f.name.toLowerCase()===p.name.toLowerCase())){CLUB.list.push({id:"p"+Date.now().toString(36)+i,type:"ai",on:true,...JSON.parse(JSON.stringify(p))});n++;}});
+  if(!CLUB.budget)CLUB.budget=1500000;saveClub();update();toast(`${n} instalaci${n===1?"ón cargada":"ones cargadas"}`);});
+function budgetLine(used,budget,el,meter){const over=budget>0&&used>budget;meter.classList.toggle("over",over);
+  meter.firstElementChild.style.width=(budget?Math.min(100,used/budget*100):0)+"%";
+  el.innerHTML=budget?(over?`<span class="over-txt">Usás ${fmt(used)} de ${fmt(budget)}: te pasaste por ${fmt(used-budget)}</span>`:`Usás ${fmt(used)} de ${fmt(budget)} · quedan ${fmt(budget-used)}`)
+    :`Usás ${fmt(used)}. Cargá el presupuesto para ver cuánto queda.`;}
+function renderFac(){const sh=k=>NAME[k].replace(" (GK)","");
+  const usedAi=CLUB.list.reduce((s,f)=>s+(f.on&&f.type==="ai"?f.cost:0),0),usedP=CLUB.list.reduce((s,f)=>s+(f.on&&f.type==="player"?f.cost:0),0);
+  if(document.activeElement!==$("facBudget"))$("facBudget").value=CLUB.budget||"";
+  if(document.activeElement!==$("facBudgetP"))$("facBudgetP").value=CLUB.pBudget||"";
+  budgetLine(usedAi,CLUB.budget,$("facUse"),$("facMeter"));budgetLine(usedP,CLUB.pBudget,$("facUseP"),$("facMeterP"));
+  $("facBug").checked=!!CLUB.bug;$("facLine").value=S.line||"";$("facAllLines").checked=!!S.facAllLines;$("facAllLines").disabled=!CLUB.bug;
+  $("facLine").options[0].textContent=`Según el arquetipo (${({att:"delantero",mid:"medio",def:"defensor",gk:"arquero"})[ARCHLINE[S.arch]]})`;
+  $("presetBox").hidden=PRESET_FAC.every(p=>CLUB.list.some(f=>f.name.toLowerCase()===p.name.toLowerCase()));
+  $("facAiNote").textContent=CLUB.bug?"con el bug, también suben a los humanos":"solo suben a los bots";
+  const card=f=>{const act=facActive(f),lineOk=facLineOk(f);
+    const chips=Object.entries(f.boosts).map(([k,n])=>`<span class="${act?"up":"same"}">${sh(k)} +${n}</span>`).join("");
+    let note="";
+    if(f.on&&!lineOk)note="No es de tu línea: a tu Pro no le suma.";
+    else if(f.type==="ai"&&f.on)note=CLUB.bug?"Por el bug también le suma a tu Pro.":"Solo para los bots: a tu Pro no le suma.";
+    return `<article class="fcard${f.on?" on":""}${f.type==="ai"&&act?" bugged":""}${f.on&&!lineOk?" otherline":""}"><header><b>${esc(f.name)}</b><span class="chip num">${fmt(f.cost)}</span></header>
+      <p class="fgrp">${GRP[f.grp||"all"]}</p>
+      <div class="fx">${chips}</div>
+      ${note?`<p class="fnote">${note}</p>`:""}
+      <div class="fact"><label class="tog" for="fon_${f.id}"><input type="checkbox" id="fon_${f.id}" data-fon="${f.id}" ${f.on?"checked":""}> Activa</label>
+        <span><button type="button" class="btn" data-fed="${f.id}">Editar</button> <button type="button" class="btn danger" data-fdl="${f.id}" aria-label="Borrar ${esc(f.name)}">Borrar</button></span></div></article>`;};
+  const empty=t=>`<p class="emptyf">Todavía no cargaste instalaciones ${t}. Agregalas con el formulario de abajo.</p>`;
+  const pl=CLUB.list.filter(f=>f.type==="player"),ai=CLUB.list.filter(f=>f.type==="ai");
+  $("facPlayer").innerHTML=pl.length?pl.map(card).join(""):empty("de jugador");
+  $("facAi").innerHTML=ai.length?ai.map(card).join(""):empty("de IA");
+  document.querySelectorAll("[data-fon]").forEach(c=>c.addEventListener("change",()=>{const f=CLUB.list.find(x=>x.id===c.dataset.fon);f.on=c.checked;saveClub();update();}));
+  document.querySelectorAll("[data-fed]").forEach(b=>b.addEventListener("click",()=>{const f=CLUB.list.find(x=>x.id===b.dataset.fed);facEdit=f.id;
+    $("fName").value=f.name;$("fType").value=f.type;$("fGrp").value=f.grp||"all";$("fCost").value=f.cost;fRows=Object.entries(f.boosts);$("facFormTitle").textContent=`Editar: ${f.name}`;
+    $("fCancel").hidden=false;$("fErr").hidden=true;renderFForm();$("facForm").scrollIntoView({behavior:"smooth",block:"start"});}));
+  document.querySelectorAll("[data-fdl]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){CLUB.list=CLUB.list.filter(x=>x.id!==b.dataset.fdl);saveClub();update();toast("Instalación borrada");}
+    else{b.dataset.armed="1";b.textContent="¿Borrar?";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar";}},2500);}}));
+  // Total que recibe tu Pro
+  const tot={};K.forEach(k=>{const b=facBonus(k);if(b)tot[k]=b;});const ks=Object.keys(tot).sort((x,y)=>tot[y]-tot[x]);
+  $("facSum").innerHTML=ks.length?ks.map(k=>{const a=arch(),fv=finalVal(k);return `<span class="up${fv>a.C[k]?" over":""}" title="${fv>a.C[k]?"Pasa el tope del arquetipo ("+a.C[k]+")":""}">${sh(k)} +${tot[k]} → ${fv}</span>`;}).join("")
+    :`<span class="same">Nada por ahora.</span>`;
+  $("tbFac").textContent=ks.length?"+"+ks.reduce((s,k)=>s+tot[k],0):"";}
+
+// ---- Resumen ----
+function goldList(){const a=arch(),sp=activeSpec(),special=sp!=null&&a.sp[sp][1]===a.sig[1]+"+";
+  const g=[{n:a.sig[0],plus:S.level>=20,why:"Firma"},{n:a.sig[1],plus:S.level>=55||special,why:"Firma"}];
+  if(sp!=null&&!special)g[S.rep]={n:a.sp[sp][1].replace("+",""),plus:true,why:a.sp[sp][0]};
+  return g;}
+function silverList(){const taken=new Set(goldList().map(g=>g.n));
+  return SLOT_LV.map((lv,i)=>S.level>=lv&&S.ps[i]?S.ps[i]:"").filter(n=>n&&!taken.has(n)&&!missing(PSREQ[n]).miss.length);}
+// Medias de carta (fórmula clásica de FIFA, aproximada)
+function faceStats(v){const r=x=>Math.round(x);
+  if(arch().gk)return [["EST",v.gkd],["MAN",v.gkh],["SAQ",v.gkk],["REF",v.gkr],["VEL",r(.45*v.acc+.55*v.spr)],["COL",v.gkp]];
+  return [["RIT",r(.45*v.acc+.55*v.spr)],["TIR",r(.05*v.pos+.45*v.fin+.2*v.shp+.2*v.ls+.05*v.vol+.05*v.pen)],
+    ["PAS",r(.2*v.vis+.2*v.cro+.05*v.fk+.35*v.sp+.15*v.lp+.05*v.cur)],["REG",r(.1*v.agi+.05*v.bal+.05*v.rea+.3*v.bc+.5*v.dri)],
+    ["DEF",r(.2*v.int+.1*v.hea+.3*v.da+.3*v.st+.1*v.sl)],["FÍS",r(.05*v.jum+.25*v.sta+.5*v.str+.2*v.agg)]];}
+const tierCls=x=>x>=90?"q4":x>=80?"q3":x>=70?"q2":"q1";
+function renderSummary(bm){const a=arch(),v={},sp=activeSpec(),ar=accelerate();
+  Object.keys(a.S).forEach(k=>v[k]=finalVal(k,bm));
+  const lineName={att:"Delantero",mid:"Mediocampista",def:"Defensor",gk:"Arquero"}[myLine()];
+  const stars=(n,mx)=>"★".repeat(n)+`<span class="off">${"★".repeat(Math.max(0,mx-n))}</span>`;
+  $("sumId").innerHTML=`<p class="eyebrow">${lineName} · nivel ${S.level}</p><h2>${a.n}</h2>
+    <div class="fmeta"><span>${isF()?"Jugadora":"Jugador"} · ${S.h} cm · ${S.w} kg</span><span class="chip ok">${ar[0]}</span>${sp!=null?`<span class="chip">${a.sp[sp][0]}</span>`:""}</div>
+    ${a.st?`<div class="fstars"><span>Filigranas <b class="pips">${stars(S.sm,5)}</b></span><span>Pierna mala <b class="pips">${stars(S.wf,5)}</b></span></div>`:""}
+    <p class="fap num">${spent()} / ${budgetFor(S.level)} AP usados</p>`;
+  $("sumFace").innerHTML=faceStats(v).map(([l,x])=>`<div class="fs ${tierCls(x)}"><b class="num">${x}</b><span>${l}</span></div>`).join("");
+  const gold=goldList(),silver=silverList();
+  $("sumGold").innerHTML=`<span class="psrl">Dorados</span>`+gold.map(g=>badge(g.n,g.plus)).join("");
+  $("sumSilver").innerHTML=`<span class="psrl">Grises</span>`+(silver.length?silver.map(n=>badge(n,false)).join(""):`<p class="hint">Ningún plateado activo. Elegilos en la pestaña PlayStyles.</p>`);
+  // Atributos por grupo con el desglose
+  $("sumAttrs").innerHTML=GROUPS.map(([g,keys])=>{const ks=keys.filter(k=>k in a.S);if(!ks.length)return "";
+    const avg=Math.round(ks.reduce((s,k)=>s+v[k],0)/ks.length);
+    return `<section class="sg"><h3>${g}<span class="num ${tierCls(avg)}">${avg}</span></h3>${ks.map(k=>{
+      const b=bm[k]||0,m=bonus(k),f=facBonus(k),over=v[k]>a.C[k];
+      const parts=[`<i class="pt buy">${S.v[k]}</i>`];if(b)parts.push(`<i class="pt body">${b>0?"+":"−"}${Math.abs(b)}</i>`);
+      if(m)parts.push(`<i class="pt mast">+${m}</i>`);if(f)parts.push(`<i class="pt fac">+${f}</i>`);
+      return `<div class="sr"><span class="sn">${NAME[k].replace(" (GK)","")}</span><span class="sp">${parts.join("")}</span>
+        <span class="sv num ${tierCls(v[k])}${over?" overcap":""}" title="${over?"Pasa el tope del arquetipo ("+a.C[k]+")":""}">${v[k]}</span>
+        <span class="sbar"><i class="${tierCls(v[k])}" style="width:${v[k]}%"></i></span></div>`;}).join("")}</section>`;}).join("");}
+$("copySum").addEventListener("click",()=>{const a=arch(),bm=bodyMods(),v={};Object.keys(a.S).forEach(k=>v[k]=finalVal(k,bm));
+  const sp=activeSpec(),g=goldList(),sv=silverList();
+  const txt=[`${a.n} · nivel ${S.level} · ${S.h} cm ${S.w} kg · ${accelerate()[0]}${sp!=null?" · "+a.sp[sp][0]:""}`,
+    faceStats(v).map(([l,x])=>`${l} ${x}`).join(" · "),
+    a.st?`Filigranas ${S.sm}★ · Pierna mala ${S.wf}★`:"",
+    `Dorados: ${g.map(x=>x.n+(x.plus?"+":"")).join(", ")}`,`Grises: ${sv.join(", ")||"ninguno"}`,
+    ...GROUPS.map(([gn,keys])=>{const ks=keys.filter(k=>k in a.S);return ks.length?`${gn}: `+ks.map(k=>`${NAME[k].replace(" (GK)","")} ${v[k]}`).join(", "):"";})
+  ].filter(Boolean).join("\n");
+  if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Resumen copiado"),()=>toast("No se pudo copiar"));else toast("No se pudo copiar");});
+
+// Pestañas
+const TABS=["resumen","atributos","playstyles","cuerpo","maestrias","instalaciones","club","builds"];
+let tabsReady=false;
+function tabFade(){const sc=$("tabscroll");if(!sc)return;sc.classList.toggle("more-l",sc.scrollLeft>4);sc.classList.toggle("more-r",sc.scrollLeft+sc.clientWidth<sc.scrollWidth-4);}
+$("tabscroll").addEventListener("scroll",tabFade,{passive:true});window.addEventListener("resize",tabFade);
+window.addEventListener("hashchange",()=>{const t=(location.hash||"").replace("#","");if(TABS.includes(t))showTab(t);});
+function showTab(t,focus){if(!TABS.includes(t))t="atributos";
+  TABS.forEach(x=>{$("p-"+x).hidden=x!==t;const b=$("t-"+x);b.setAttribute("aria-selected",x===t);b.tabIndex=x===t?0:-1;b.classList.toggle("on",x===t);});
+  if(focus)$("t-"+t).focus();try{localStorage.setItem("pc27.tab",t);}catch(e){}
+  // En celular: la pestaña activa se acomoda a la vista y, si la barra está pegada arriba, vuelvo al principio del panel
+  const sc=$("tabscroll"),btn=$("t-"+t);if(sc&&btn&&sc.scrollWidth>sc.clientWidth){sc.scrollTo({left:btn.offsetLeft-sc.clientWidth/2+btn.offsetWidth/2,behavior:tabsReady?"smooth":"auto"});}
+  const bar=$("tabbar");if(tabsReady&&bar&&getComputedStyle(bar).position==="sticky"&&bar.getBoundingClientRect().top<=1){const y=bar.offsetTop;if(window.scrollY>y)window.scrollTo({top:y});}
+  tabsReady=true;tabFade();
+  if(MODE==="supa"&&(t==="builds"||t==="instalaciones")){sbLoadBuilds();sbLoadClub();}
+  if(t==="club")renderEaTab();}
+document.querySelectorAll("[data-tab]").forEach(b=>{b.addEventListener("click",()=>showTab(b.dataset.tab));
+  b.addEventListener("keydown",e=>{const i=TABS.indexOf(b.dataset.tab);if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();
+    showTab(TABS[(i+(e.key==="ArrowRight"?1:TABS.length-1))%TABS.length],true);}});});
+$("psOnly").addEventListener("change",e=>{S.psOnly=e.target.checked;update();});
+
+// Builds guardados
+function saves(){return store.get("pc27.saves")||[];}
+const useCloud=()=>MODE!=="local"&&!!ME&&!readOnly;
+const nowISO=()=>new Date().toISOString();
+function cloudMine(){const d=cloudAll.find(x=>x.uid===ME);return d?JSON.parse(JSON.stringify(d.list)):{};}
+function localSetMine(list){const d=cloudAll.find(x=>x.uid===ME);if(d)d.list=list;else cloudAll.push({uid:ME,list});}
+// Dentro de Claude, mis builds van en un solo documento
+function setCloudMine(list){localSetMine(list);cloudWrite(()=>DB.doc("builds/"+ME).set({list}));}
+// En Supabase, una fila por build (único por dueño + nombre)
+function sbUpsert(rows){return cloudWrite(async()=>{const {error}=await SB.from("builds").upsert(rows,{onConflict:"owner,nombre"});if(error)throw error;await sbLoadBuilds();});}
+// Lista unificada de mis builds: [{id,name,s}]
+function myBuilds(){if(useCloud())return Object.entries(cloudMine()).map(([id,b])=>({id,...b})).sort((x,y)=>(y.t||0)-(x.t||0));
+  return saves().map((b,i)=>({id:String(i),...b}));}
+function saveBuild(name){const s=JSON.parse(JSON.stringify(S));
+  if(useCloud()){const l=cloudMine();const hit=Object.keys(l).find(id=>l[id].name===name);const id=hit||("b"+Date.now().toString(36));
+    l[id]={name,s,t:Date.now()};
+    if(MODE==="claude")setCloudMine(l);else{localSetMine(l);sbUpsert([{owner:ME,nombre:name,datos:s,actualizado:nowISO()}]);}
+    return !!hit;}
+  const l=saves();const i=l.findIndex(b=>b.name===name);const entry={name,s};if(i>=0)l[i]=entry;else l.unshift(entry);store.set("pc27.saves",l);return i>=0;}
+function deleteBuild(id){if(useCloud()){const l=cloudMine();delete l[id];
+    if(MODE==="claude")setCloudMine(l);
+    else{localSetMine(l);cloudWrite(async()=>{const {error}=await SB.from("builds").delete().eq("id",id);if(error)throw error;await sbLoadBuilds();});}
+    return;}
+  const l=saves();l.splice(+id,1);store.set("pc27.saves",l);}
+function buildLi(b,opts){const a=BYID[b.s&&b.s.arch];
+  const gl=b.s&&b.s.gender==="f"?"Jugadora":"Jugador";
+  return `<li><span><b>${esc(b.name)}</b> · ${gl} ${a?a.n:""} nv ${b.s?b.s.level:""}${opts.who?` · <i class="who" data-uid="${opts.who}"></i>`:""}</span><div>
+    <button class="btn" type="button" data-load="${opts.key}">Abrir</button>${opts.del?`<button class="btn danger" type="button" data-del="${b.id}" aria-label="Borrar ${esc(b.name)}">✕</button>`:""}</div></li>`;}
+async function renderSaves(){const mine=myBuilds(),ul=$("saveList");$("tbSaves").textContent=mine.length||"";
+  const cloud=useCloud();
+  const ro=MODE!=="local"&&readOnly;
+  $("cloudChip").textContent=cloud?"En la nube":(ro?"Solo lectura":"En este navegador");$("cloudChip").classList.toggle("ok",cloud);
+  $("saveHint").textContent=cloud?"Se guardan en la nube: los ves desde cualquier compu o celular donde entres con tu cuenta.":
+    (ro?"Podés ver los builds del club pero no guardar en la nube.":
+      (SB?"Se guardan en este navegador. Entrá con tu mail (arriba) para guardarlos en la nube.":"Se guardan en este navegador."));
+  const pool={};mine.forEach((b,i)=>pool["m"+i]=b);
+  ul.innerHTML=mine.length?mine.map((b,i)=>buildLi(b,{key:"m"+i,del:true})).join(""):'<li><span style="color:var(--muted)">Todavía no guardaste ningún build.</span></li>';
+  // Builds locales que no están en la nube
+  const pend=cloud?saves().filter(b=>!mine.some(m=>m.name===b.name)):[];$("migrateBox").hidden=!pend.length;
+  // Builds del club (de los demás)
+  const others=MODE!=="local"?cloudAll.filter(x=>x.uid!==ME):[];const card=$("clubBuildsCard");card.hidden=MODE==="local";
+  const rows=[];others.forEach(o=>Object.entries(o.list||{}).forEach(([id,b])=>rows.push({id,uid:o.uid,...b})));rows.sort((x,y)=>(y.t||0)-(x.t||0));
+  rows.forEach((b,i)=>pool["o"+i]=b);
+  $("clubList").innerHTML=rows.length?rows.map((b,i)=>buildLi(b,{key:"o"+i,who:b.uid})).join(""):'<li><span style="color:var(--muted)">Nadie más guardó builds todavía.</span></li>';
+  document.querySelectorAll("#p-builds [data-load]").forEach(b=>b.addEventListener("click",()=>{const e=pool[b.dataset.load];if(e&&load(e.s))toast(b.dataset.load[0]==="o"?"Copia abierta":"Build abierto");}));
+  ul.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){deleteBuild(b.dataset.del);renderSaves();toast("Build borrado");}
+    else{b.dataset.armed="1";b.textContent="¿Borrar?";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="✕";}},2500);}}));
+  // Nombres de quién guardó cada build (se resuelven al mostrar, nunca se guardan)
+  if(MODE==="supa")document.querySelectorAll("#clubList .who").forEach(el=>{el.textContent="de "+(NAMES[el.dataset.uid]||"otro jugador");});
+  else if(MODE==="claude"&&USER&&rows.length){const ps=await USER.profiles([...new Set(rows.map(r=>r.uid))]);
+    document.querySelectorAll("#clubList .who").forEach(el=>{el.textContent="de "+((ps[el.dataset.uid]&&ps[el.dataset.uid].name)||"otro jugador");});}}
+$("migrateBtn").addEventListener("click",()=>{if(!useCloud())return;const l=cloudMine();const add=[];
+  saves().forEach((b,i)=>{if(!Object.values(l).some(x=>x.name===b.name)){l["b"+Date.now().toString(36)+i]={name:b.name,s:b.s,t:Date.now()-i};add.push(b);}});
+  if(MODE==="claude")setCloudMine(l);else{localSetMine(l);if(add.length)sbUpsert(add.map(b=>({owner:ME,nombre:b.name.slice(0,40),datos:b.s,actualizado:nowISO()})));}
+  const n=add.length;renderSaves();toast(`${n} build${n===1?"":"s"} subido${n===1?"":"s"} a la nube`);});
+$("refreshBtn").addEventListener("click",async()=>{if(MODE==="supa"){await sbLoadBuilds();await sbLoadClub();toast("Actualizado");}});
+async function initCloud(){
+  if(!window.claude||!window.claude.use){initSupa();return;}
+  try{DB=await window.claude.use("db");USER=await window.claude.use("user");}catch(e){DB=null;}
+  if(!DB||!USER){DB=null;return;}
+  ME=await USER.id();if(!ME){DB=null;return;}
+  MODE="claude";
+  const canW=await USER.can("data.write");if(canW===false)readOnly=true;
+  DB.collection("builds").onSnapshot(snap=>{cloudAll=snap.docs.filter(d=>d.exists).map(d=>({uid:d.id,list:JSON.parse(JSON.stringify((d.data()||{}).list||{}))}));cloudReady=true;renderSaves();},
+    ()=>{DB=null;MODE="local";renderSaves();});
+  DB.doc("club/main").onSnapshot(s=>{if(s.exists){const d=s.data()||{};
+      CLUB={budget:+d.budget||0,pBudget:+d.pBudget||0,bug:d.bug!==false,list:Array.isArray(d.list)?JSON.parse(JSON.stringify(d.list)):[]};store.set("pc27.club",CLUB);update();}
+    else if(!readOnly&&CLUB.list.length){saveClub();}},()=>{});
+  renderSaves();}
+
+// ---- Supabase ----
+async function initSupa(){
+  if(!window.supabase||!window.supabase.createClient){renderAccount();return;}
+  try{SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}catch(e){SB=null;renderAccount();return;}
+  SB.auth.onAuthStateChange((ev,session)=>{setTimeout(()=>handleSession(session),0);});
+  const {data}=await SB.auth.getSession();await handleSession(data&&data.session);}
+let sessionUid=undefined;
+async function handleSession(session){const uid=session&&session.user?session.user.id:null;
+  if(uid===sessionUid)return;sessionUid=uid;
+  if(!uid){MODE="local";ME=null;SBUSER=null;SBMEMBER=false;SBNAME="";cloudAll=[];readOnly=false;renderAccount();renderSaves();return;}
+  SBUSER=session.user;ME=uid;
+  const {data:m,error:me}=await SB.from("miembros").select("email").limit(1);
+  SBMEMBER=!me&&!!(m&&m.length);
+  if(!SBMEMBER){MODE="local";cloudAll=[];renderAccount();renderSaves();return;}
+  MODE="supa";readOnly=false;
+  const {data:p}=await SB.from("perfiles").select("nombre").eq("id",ME).maybeSingle();SBNAME=p?p.nombre:"";
+  renderAccount();await sbLoadClub();await sbLoadBuilds();}
+async function sbLoadBuilds(){if(MODE!=="supa")return;
+  const {data,error}=await SB.from("builds").select("id,owner,nombre,datos,actualizado").order("actualizado",{ascending:false});
+  if(error){toast("No se pudieron leer los builds");return;}
+  const by={};(data||[]).forEach(r=>{(by[r.owner]=by[r.owner]||{})[r.id]={name:r.nombre,s:r.datos,t:Date.parse(r.actualizado)||0};});
+  if(!by[ME])by[ME]={};
+  cloudAll=Object.entries(by).map(([uid,list])=>({uid,list}));
+  const ids=Object.keys(by);
+  if(ids.length){const {data:ps}=await SB.from("perfiles").select("id,nombre").in("id",ids);(ps||[]).forEach(p=>NAMES[p.id]=p.nombre);}
+  renderSaves();}
+async function sbLoadClub(){if(MODE!=="supa")return;
+  const {data,error}=await SB.from("club").select("*").eq("id",1).maybeSingle();
+  if(error||!data)return;
+  const list=Array.isArray(data.instalaciones)?data.instalaciones:[];
+  // Si el club en la nube está vacío y acá había instalaciones cargadas, las subo
+  if(!list.length&&!data.presupuesto&&CLUB.list.length){saveClub();return;}
+  if(!("presupuesto_jugador" in data))noPCol=true;
+  CLUB={budget:+data.presupuesto||0,pBudget:+data.presupuesto_jugador||0,bug:data.bug!==false,list:JSON.parse(JSON.stringify(list))};
+  store.set("pc27.club",CLUB);update();}
+
+// Tarjeta de cuenta (solo con Supabase)
+function renderAccount(){const box=$("acctBox"),card=$("acctCard");
+  if(MODE==="claude"||!SB){card.hidden=true;return;}card.hidden=false;
+  if(!SBUSER){box.innerHTML=`<p class="hint">Entrá con tu mail para guardar tus builds en la nube y ver los del club. Te llega un link: lo abrís y listo, sin contraseña.</p>
+    <form class="line" id="loginForm"><input type="email" id="loginMail" placeholder="tu@mail.com" required autocomplete="email"><button class="btn primary" type="submit" id="loginBtn">Mandarme el link</button></form>
+    ${authMsg?`<p class="hint ${authMsg.startsWith("!")?"warn-txt":"okmsg"}">${esc(authMsg.replace(/^!/,""))}</p>`:""}`;
+    $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const email=$("loginMail").value.trim();if(!email)return;
+      $("loginBtn").disabled=true;$("loginBtn").textContent="Enviando…";
+      const redirect=/^https?:$/.test(location.protocol)?location.origin+location.pathname:SITE_URL;
+      const {error}=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:redirect}});
+      authMsg=error?(/rate|limit|seconds/i.test(error.message)?"!Se mandaron muchos mails seguidos. Esperá un rato y probá de nuevo.":"!No se pudo mandar el mail: "+error.message)
+        :`Listo: revisá ${email} (y la carpeta de spam) y abrí el link desde este mismo navegador.`;
+      renderAccount();});
+    return;}
+  const mail=esc(SBUSER.email||"");
+  if(!SBMEMBER){box.innerHTML=`<p class="hint warn-txt">Entraste como ${mail}, pero ese mail no está en la lista del club. Pedile al dueño del club que lo agregue y después tocá "Volver a probar".</p>
+    <div class="line"><button class="btn" type="button" id="retryBtn">Volver a probar</button><button class="btn" type="button" id="logoutBtn">Salir</button></div>`;
+    $("retryBtn").addEventListener("click",()=>{sessionUid=undefined;SB.auth.getSession().then(r=>handleSession(r.data.session));});
+    $("logoutBtn").addEventListener("click",()=>SB.auth.signOut());return;}
+  if(!SBNAME){box.innerHTML=`<p class="hint">¿Cómo te llaman en el club? Es el nombre que van a ver los demás en tus builds.</p>
+    <form class="line" id="nameForm"><input type="text" id="nameIn" maxlength="30" placeholder="Tu nombre o apodo" required><button class="btn primary" type="submit">Guardar</button></form>`;
+    $("nameForm").addEventListener("submit",async e=>{e.preventDefault();const n=$("nameIn").value.trim().slice(0,30);if(!n)return;
+      const {error}=await SB.from("perfiles").upsert({id:ME,nombre:n});if(error){toast("No se pudo guardar el nombre");return;}
+      SBNAME=n;NAMES[ME]=n;renderAccount();toast("Nombre guardado");});return;}
+  box.innerHTML=`<div class="acct"><div><b>${esc(SBNAME)}</b><small>${mail}</small></div>
+    <div class="line"><button class="btn" type="button" id="renameBtn">Cambiar nombre</button><button class="btn" type="button" id="logoutBtn">Salir</button></div></div>`;
+  $("renameBtn").addEventListener("click",()=>{SBNAME="";renderAccount();});
+  $("logoutBtn").addEventListener("click",()=>SB.auth.signOut());}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function load(s){if(!s||!BYID[s.arch])return false;const base=fresh(s.arch,s.level);
+  Object.keys(base.v).forEach(k=>{const a=BYID[s.arch];if(s.v&&typeof s.v[k]==="number")base.v[k]=Math.max(a.S[k],Math.min(a.C[k],s.v[k]));});
+  const a=BYID[s.arch];if(a.st){base.sm=Math.max(a.st[0],Math.min(a.st[1],s.sm||0));base.wf=Math.max(a.st[3],Math.min(a.st[4],s.wf||0));}
+  base.level=Math.max(1,Math.min(55,s.level||55));base.mast=s.mast||{};
+  if(typeof s.h==="number")base.h=Math.max(a.hr[0],Math.min(a.hr[1],s.h));if(typeof s.w==="number")base.w=Math.max(a.wr[0],Math.min(a.wr[1],s.w));
+  if(Array.isArray(s.ps))base.ps=[0,1,2,3].map(i=>PSDESC[s.ps[i]]?s.ps[i]:"");
+  base.gender=s.gender==="f"?"f":"m";base.useFinal=!!s.useFinal;if(["att","mid","def","gk"].includes(s.line))base.line=s.line;base.facAllLines=!!s.facAllLines;if(s.spec===0||s.spec===1||s.spec===2)base.spec=s.spec;if(s.rep===0||s.rep===1)base.rep=s.rep;S=base;renderGroups();update();return true;}
+$("saveBtn").addEventListener("click",()=>{const name=$("saveName").value.trim()||`${arch().n} nv ${S.level}`;
+  const upd=saveBuild(name);$("saveName").value="";renderSaves();toast(upd?"Build actualizado":(useCloud()?"Build guardado en la nube":"Build guardado"));});
+$("exportBtn").addEventListener("click",()=>{const code=btoa(unescape(encodeURIComponent(JSON.stringify(S))));$("codeBox").value=code;
+  if(navigator.clipboard)navigator.clipboard.writeText(code).then(()=>toast("Código copiado"),()=>{$("codeBox").select();toast("Seleccionado: copialo con Ctrl+C");});
+  else{$("codeBox").select();toast("Seleccionado: copialo con Ctrl+C");}});
+$("importBtn").addEventListener("click",()=>{try{const s=JSON.parse(decodeURIComponent(escape(atob($("codeBox").value.trim()))));
+  if(load(s))toast("Build cargado");else toast("Ese código no es de un build válido");}catch(e){toast("No pude leer el código. Revisá que esté completo.");}});
+
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
+
+buildArchSelect();
+$("arch").addEventListener("change",e=>{S=fresh(e.target.value,S.level);renderGroups();update();});
+$("level").addEventListener("input",e=>{S.level=+e.target.value;update();});
+let armed=false;$("resetBtn").addEventListener("click",e=>{if(!armed){armed=true;e.target.textContent="¿Seguro?";setTimeout(()=>{armed=false;e.target.textContent="Reiniciar";},2500);return;}
+  armed=false;e.target.textContent="Reiniciar";S=fresh(S.arch,S.level);renderGroups();update();toast("Atributos en valores iniciales");});
+renderFForm();renderGroups();update();renderSaves();initCloud();
+(function(){let t=(location.hash||"").replace("#","");if(!TABS.includes(t)){try{t=localStorage.getItem("pc27.tab")||"";}catch(e){t="";}}showTab(t);})();
+})();
+</script>
+
+</body>
+</html>
