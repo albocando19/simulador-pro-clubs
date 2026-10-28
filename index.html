@@ -427,6 +427,20 @@ textarea{width:100%;min-height:64px;background:var(--sunk);border:1px solid var(
 #migrateBox .hint{margin:0 0 6px}
 .buildgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 @media (max-width:900px){.psgrid,.bodygrid,.buildgrid{grid-template-columns:1fr}}
+.golform{display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
+.golform .line{display:flex;gap:10px;flex-wrap:wrap}
+.golform input{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+.golform .btn{align-self:flex-start}
+.golgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:4px}
+.golcard{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sunk);display:flex;flex-direction:column}
+.golvid{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+.golvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.gollink{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;font-weight:600;text-align:center;padding:12px}
+.golbody{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.golbody b{font-size:15px}
+.golbody .meta{font-size:12px;color:var(--muted)}
+.golbody .coment{font-size:13px}
+.golbody .golx{align-self:flex-end;margin-top:4px}
 @media (max-width:560px){.slots{grid-template-columns:1fr}.accgrid{grid-template-columns:1fr}.tabs button{font-size:16px;padding:10px 10px 9px}}
 footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
 
@@ -550,6 +564,7 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       <button type="button" role="tab" id="t-instalaciones" data-tab="instalaciones">Instalaciones <span class="tb num" id="tbFac"></span></button>
       <button type="button" role="tab" id="t-club" data-tab="club">Estadísticas del club</button>
       <button type="button" role="tab" id="t-builds" data-tab="builds">Mis builds <span class="tb num" id="tbSaves"></span></button>
+      <button type="button" role="tab" id="t-goles" data-tab="goles">Goles <span class="tb num" id="tbGoles"></span></button>
     </nav></div>
     <div class="mobap num" id="mobAP" aria-live="polite"></div>
   </div></div>
@@ -727,6 +742,31 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
           </div>
           <p class="hint">Con el código le pasás tu build a un amigo, o lo llevás a otro navegador.</p></section>
       </div>
+    </div>
+  </div>
+  <div class="panel" id="p-goles" role="tabpanel" aria-labelledby="t-goles" hidden>
+    <div class="inner">
+      <section class="card" id="golesFormCard" hidden>
+        <h3>Subir un gol</h3>
+        <form id="golForm" class="golform">
+          <div class="field"><label for="golLink">Link del video</label>
+            <input type="url" id="golLink" placeholder="https://..." required></div>
+          <div class="line">
+            <div class="field" style="flex:1"><label for="golAutor">¿Quién la metió?</label>
+              <input type="text" id="golAutor" maxlength="40" placeholder="Nombre del jugador" required></div>
+            <div class="field" style="flex:2"><label for="golComent">Comentario (opcional)</label>
+              <input type="text" id="golComent" maxlength="140" placeholder="Golazo de media cancha..."></div>
+          </div>
+          <button class="btn primary" type="submit" id="golBtn">Subir gol</button>
+        </form>
+        <p class="hint">Pegá el link de un video ya subido a YouTube, Google Drive (con el acceso en "cualquiera con el link puede ver") u otro lado. Se ve al toque para todo el club.</p>
+      </section>
+      <section class="card" id="golesLockedCard" hidden><p class="hint">Entrá con tu mail (pestaña "Mis builds") para poder subir goles y verlos.</p></section>
+      <section class="card">
+        <h3>Goles del club</h3>
+        <div class="golgrid" id="golGrid"></div>
+        <p class="hint" id="golEmpty">Todavía no subieron ningún gol.</p>
+      </section>
     </div>
   </div>
   <footer>Precios por punto, valores iniciales y topes de la temporada 2 (re-tier del 22/10/2026). AP por nivel exacto del 40 al 55; por debajo del 40 es una estimación lineal. Fan-made, sin relación con EA.</footer>
@@ -947,7 +987,7 @@ if(!CLUB||!Array.isArray(CLUB.list))CLUB={budget:0,pBudget:0,bug:true,list:[]};
 const SB_URL="https://vrpogndxlecmxravqhiy.supabase.co",SB_KEY="sb_publishable_ZfE5CKZBMmeI61K2Kpq2HQ_0xAhK8EE";
 const SITE_URL="https://escabiadosbuild.netlify.app";
 let noPCol=false,MODE="local",DB=null,USER=null,ME=null,SB=null,SBUSER=null,SBMEMBER=false,SBNAME="",NAMES={},authMsg="",
-  cloudAll=[],cloudReady=false,readOnly=false,writeQ=Promise.resolve(),budgetT=null;
+  cloudAll=[],cloudReady=false,readOnly=false,writeQ=Promise.resolve(),budgetT=null,GOLES=[];
 function cloudErr(e){const c=e&&e.code;
   if(c==="invalid_argument"||c==="not_granted"||c==="42501"||c==="PGRST301"){readOnly=true;toast("No tenés permiso para guardar en la nube");renderSaves();}
   else if(c==="quota_exceeded")toast("La base de datos está llena: borrá builds viejos");
@@ -1447,7 +1487,7 @@ $("copySum").addEventListener("click",()=>{const a=arch(),bm=bodyMods(),v={};Obj
   if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Resumen copiado"),()=>toast("No se pudo copiar"));else toast("No se pudo copiar");});
 
 // Pestañas
-const TABS=["resumen","atributos","playstyles","cuerpo","maestrias","instalaciones","club","builds"];
+const TABS=["resumen","atributos","playstyles","cuerpo","maestrias","instalaciones","club","builds","goles"];
 let tabsReady=false;
 function tabFade(){const sc=$("tabscroll");if(!sc)return;sc.classList.toggle("more-l",sc.scrollLeft>4);sc.classList.toggle("more-r",sc.scrollLeft+sc.clientWidth<sc.scrollWidth-4);}
 $("tabscroll").addEventListener("scroll",tabFade,{passive:true});window.addEventListener("resize",tabFade);
@@ -1460,7 +1500,9 @@ function showTab(t,focus){if(!TABS.includes(t))t="atributos";
   const bar=$("tabbar");if(tabsReady&&bar&&getComputedStyle(bar).position==="sticky"&&bar.getBoundingClientRect().top<=1){const y=bar.offsetTop;if(window.scrollY>y)window.scrollTo({top:y});}
   tabsReady=true;tabFade();
   if(MODE==="supa"&&(t==="builds"||t==="instalaciones")){sbLoadBuilds();sbLoadClub();}
-  if(t==="club")renderEaTab();}
+  if(MODE==="supa"&&t==="goles")sbLoadGoles();
+  if(t==="club")renderEaTab();
+  if(t==="goles")renderGolesGate();}
 document.querySelectorAll("[data-tab]").forEach(b=>{b.addEventListener("click",()=>showTab(b.dataset.tab));
   b.addEventListener("keydown",e=>{const i=TABS.indexOf(b.dataset.tab);if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();
     showTab(TABS[(i+(e.key==="ArrowRight"?1:TABS.length-1))%TABS.length],true);}});});
@@ -1523,6 +1565,16 @@ $("migrateBtn").addEventListener("click",()=>{if(!useCloud())return;const l=clou
   if(MODE==="claude")setCloudMine(l);else{localSetMine(l);if(add.length)sbUpsert(add.map(b=>({owner:ME,nombre:b.name.slice(0,40),datos:b.s,actualizado:nowISO()})));}
   const n=add.length;renderSaves();toast(`${n} build${n===1?"":"s"} subido${n===1?"":"s"} a la nube`);});
 $("refreshBtn").addEventListener("click",async()=>{if(MODE==="supa"){await sbLoadBuilds();await sbLoadClub();toast("Actualizado");}});
+$("golForm").addEventListener("submit",async e=>{e.preventDefault();
+  if(MODE!=="supa")return;
+  const link=$("golLink").value.trim(),anotador=$("golAutor").value.trim().slice(0,40),comentario=$("golComent").value.trim().slice(0,140);
+  if(!link||!anotador)return;
+  $("golBtn").disabled=true;$("golBtn").textContent="Subiendo…";
+  const {error}=await SB.from("goles").insert({owner:ME,anotador,link,comentario:comentario||null});
+  $("golBtn").disabled=false;$("golBtn").textContent="Subir gol";
+  if(error){toast("No se pudo subir el gol");return;}
+  $("golLink").value="";$("golComent").value="";
+  await sbLoadGoles();toast("Gol subido");});
 async function initCloud(){
   if(!window.claude||!window.claude.use){initSupa();return;}
   try{DB=await window.claude.use("db");USER=await window.claude.use("user");}catch(e){DB=null;}
@@ -1546,14 +1598,14 @@ async function initSupa(){
 let sessionUid=undefined;
 async function handleSession(session){const uid=session&&session.user?session.user.id:null;
   if(uid===sessionUid)return;sessionUid=uid;
-  if(!uid){MODE="local";ME=null;SBUSER=null;SBMEMBER=false;SBNAME="";cloudAll=[];readOnly=false;renderAccount();renderSaves();return;}
+  if(!uid){MODE="local";ME=null;SBUSER=null;SBMEMBER=false;SBNAME="";cloudAll=[];GOLES=[];readOnly=false;renderAccount();renderSaves();renderGolesGate();return;}
   SBUSER=session.user;ME=uid;
   const {data:m,error:me}=await SB.from("miembros").select("email").limit(1);
   SBMEMBER=!me&&!!(m&&m.length);
-  if(!SBMEMBER){MODE="local";cloudAll=[];renderAccount();renderSaves();return;}
+  if(!SBMEMBER){MODE="local";cloudAll=[];GOLES=[];renderAccount();renderSaves();renderGolesGate();return;}
   MODE="supa";readOnly=false;
   const {data:p}=await SB.from("perfiles").select("nombre").eq("id",ME).maybeSingle();SBNAME=p?p.nombre:"";
-  renderAccount();await sbLoadClub();await sbLoadBuilds();}
+  renderAccount();await sbLoadClub();await sbLoadBuilds();await sbLoadGoles();}
 async function sbLoadBuilds(){if(MODE!=="supa")return;
   const {data,error}=await SB.from("builds").select("id,owner,nombre,datos,actualizado").order("actualizado",{ascending:false});
   if(error){toast("No se pudieron leer los builds");return;}
@@ -1572,6 +1624,44 @@ async function sbLoadClub(){if(MODE!=="supa")return;
   if(!("presupuesto_jugador" in data))noPCol=true;
   CLUB={budget:+data.presupuesto||0,pBudget:+data.presupuesto_jugador||0,bug:data.bug!==false,list:JSON.parse(JSON.stringify(list))};
   store.set("pc27.club",CLUB);update();}
+
+// ---- Goles del club ----
+function embedUrl(link){
+  try{const u=new URL(link);
+    let m=u.hostname.includes("youtu.be")?u.pathname.slice(1):
+      (u.hostname.includes("youtube.com")?(u.searchParams.get("v")||(u.pathname.startsWith("/shorts/")?u.pathname.split("/")[2]:"")):"");
+    if(m)return "https://www.youtube.com/embed/"+m;
+    const dm=u.hostname.includes("drive.google.com")?u.pathname.match(/\/d\/([^/]+)/):null;
+    if(dm)return "https://drive.google.com/file/d/"+dm[1]+"/preview";
+    return null;}
+  catch(e){return null;}}
+function golCard(g){const e=embedUrl(g.link);
+  const vid=e?`<iframe src="${esc(e)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`
+    :`<a class="gollink" href="${esc(g.link)}" target="_blank" rel="noopener">▶ Ver video</a>`;
+  const fecha=g.creado?new Date(g.creado).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"}):"";
+  const quien=NAMES[g.owner]||"alguien del club";
+  return `<div class="golcard"><div class="golvid">${vid}</div><div class="golbody">
+    <b>⚽ ${esc(g.anotador||"?")}</b>
+    ${g.comentario?`<div class="coment">${esc(g.comentario)}</div>`:""}
+    <div class="meta">Subido por ${esc(quien)} · ${fecha}</div>
+    ${g.owner===ME?`<button class="btn danger sm golx" type="button" data-golx="${g.id}">Borrar</button>`:""}
+  </div></div>`;}
+function renderGoles(){const grid=$("golGrid");$("tbGoles").textContent=GOLES.length||"";
+  $("golEmpty").hidden=!!GOLES.length;
+  grid.innerHTML=GOLES.map(golCard).join("");
+  grid.querySelectorAll("[data-golx]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){const id=b.dataset.golx;cloudWrite(async()=>{const {error}=await SB.from("goles").delete().eq("id",id);if(error)throw error;await sbLoadGoles();});}
+    else{b.dataset.armed="1";b.textContent="¿Borrar?";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar";}},2500);}}));}
+async function sbLoadGoles(){if(MODE!=="supa")return;
+  const {data,error}=await SB.from("goles").select("id,owner,anotador,comentario,link,creado").order("creado",{ascending:false});
+  if(error){toast("No se pudieron leer los goles");return;}
+  GOLES=data||[];
+  const ids=[...new Set(GOLES.map(g=>g.owner))].filter(id=>!NAMES[id]);
+  if(ids.length){const {data:ps}=await SB.from("perfiles").select("id,nombre").in("id",ids);(ps||[]).forEach(p=>NAMES[p.id]=p.nombre);}
+  renderGoles();}
+function renderGolesGate(){const cloud=MODE==="supa"&&!readOnly;
+  $("golesFormCard").hidden=!cloud;$("golesLockedCard").hidden=cloud;
+  if(SBNAME)$("golAutor").value=$("golAutor").value||SBNAME;}
 
 // Tarjeta de cuenta (solo con Supabase)
 function renderAccount(){const box=$("acctBox"),card=$("acctCard");
