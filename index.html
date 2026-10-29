@@ -1,9 +1,3 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0e1411">
 <title>Simulador Pro Clubs 27</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -436,6 +430,11 @@ textarea{width:100%;min-height:64px;background:var(--sunk);border:1px solid var(
 .golform .line{display:flex;gap:10px;flex-wrap:wrap}
 .golform input{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
 .golform .btn{align-self:flex-start}
+.golform input[type=file]{padding:6px}
+.golprog{display:flex;align-items:center;gap:10px}
+.golprogbar{flex:1;height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.golprogfill{height:100%;width:0%;background:var(--accent);transition:width .15s}
+.golprogtxt{font-size:12px;color:var(--muted);min-width:34px;text-align:right}
 .golgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:4px}
 .golcard{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sunk);display:flex;flex-direction:column}
 .golvid{position:relative;width:100%;aspect-ratio:16/9;background:#000}
@@ -535,8 +534,6 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-</head>
-<body>
 
 <header class="bar">
   <div class="bar-in">
@@ -758,17 +755,21 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       <section class="card" id="golesFormCard" hidden>
         <h3>Subir un gol</h3>
         <form id="golForm" class="golform">
-          <div class="field"><label for="golLink">Link del video</label>
-            <input type="url" id="golLink" placeholder="https://..." required></div>
+          <div class="field"><label for="golFile">Video</label>
+            <input type="file" id="golFile" accept="video/*" required></div>
           <div class="line">
             <div class="field" style="flex:1"><label for="golAutor">¿Quién la metió?</label>
               <input type="text" id="golAutor" maxlength="40" placeholder="Nombre del jugador" required></div>
             <div class="field" style="flex:2"><label for="golComent">Comentario (opcional)</label>
               <input type="text" id="golComent" maxlength="140" placeholder="Golazo de media cancha..."></div>
           </div>
+          <div class="golprog" id="golProg" hidden>
+            <div class="golprogbar"><div class="golprogfill" id="golProgFill"></div></div>
+            <span class="golprogtxt" id="golProgTxt">0%</span>
+          </div>
           <button class="btn primary" type="submit" id="golBtn">Subir gol</button>
         </form>
-        <p class="hint">Pegá el link de un video ya subido a YouTube, Google Drive (con el acceso en "cualquiera con el link puede ver") u otro lado. Se ve al toque para todo el club.</p>
+        <p class="hint">El video se sube directo desde acá y queda guardado para todo el club. Se ve al toque, sin espera.</p>
       </section>
       <section class="card" id="golesLockedCard" hidden><p class="hint">Entrá con tu mail (pestaña "Mis builds") para poder subir goles y verlos.</p></section>
       <section class="card">
@@ -1584,16 +1585,54 @@ $("migrateBtn").addEventListener("click",()=>{if(!useCloud())return;const l=clou
   if(MODE==="claude")setCloudMine(l);else{localSetMine(l);if(add.length)sbUpsert(add.map(b=>({owner:ME,nombre:b.name.slice(0,40),datos:b.s,actualizado:nowISO()})));}
   const n=add.length;renderSaves();toast(`${n} build${n===1?"":"s"} subido${n===1?"":"s"} a la nube`);});
 $("refreshBtn").addEventListener("click",async()=>{if(MODE==="supa"){await sbLoadBuilds();await sbLoadClub();toast("Actualizado");}});
+function golSetProg(pct,label){const p=$("golProg");p.hidden=false;$("golProgFill").style.width=pct+"%";$("golProgTxt").textContent=label||(pct+"%");}
+function xhrPut(url,file,onProgress){return new Promise((resolve,reject)=>{
+  const xhr=new XMLHttpRequest();xhr.open("PUT",url);
+  xhr.upload.onprogress=ev=>{if(ev.lengthComputable)onProgress(ev.loaded/ev.total*100);};
+  xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300)resolve(JSON.parse(xhr.responseText));else reject(new Error("upload_failed_"+xhr.status));};
+  xhr.onerror=()=>reject(new Error("upload_network_error"));
+  xhr.send(file);});}
 $("golForm").addEventListener("submit",async e=>{e.preventDefault();
   if(MODE!=="supa")return;
-  const link=$("golLink").value.trim(),anotador=$("golAutor").value.trim().slice(0,40),comentario=$("golComent").value.trim().slice(0,140);
-  if(!link||!anotador)return;
-  $("golBtn").disabled=true;$("golBtn").textContent="Subiendo…";
-  const {error}=await SB.from("goles").insert({owner:ME,anotador,link,comentario:comentario||null});
-  $("golBtn").disabled=false;$("golBtn").textContent="Subir gol";
-  if(error){toast("No se pudo subir el gol");return;}
-  $("golLink").value="";$("golComent").value="";
-  await sbLoadGoles();toast("Gol subido");});
+  const file=$("golFile").files[0];
+  const anotador=$("golAutor").value.trim().slice(0,40),comentario=$("golComent").value.trim().slice(0,140);
+  if(!file||!anotador)return;
+  const btn=$("golBtn");btn.disabled=true;btn.textContent="Preparando…";golSetProg(0,"Preparando…");
+  try{
+    const {data:sess}=await SB.auth.getSession();
+    const tokRes=await fetch(SB_URL+"/functions/v1/gdrive-auth",{method:"POST",
+      headers:{"Authorization":"Bearer "+sess.session.access_token,"Content-Type":"application/json"},
+      body:JSON.stringify({sizeBytes:file.size})});
+    const tokJson=await tokRes.json();
+    if(!tokRes.ok)throw new Error(tokJson.error||"No se pudo autorizar la subida");
+    const accessToken=tokJson.accessToken;
+
+    btn.textContent="Subiendo…";
+    const initRes=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id",{
+      method:"POST",
+      headers:{"Authorization":"Bearer "+accessToken,"Content-Type":"application/json; charset=UTF-8",
+        "X-Upload-Content-Type":file.type||"video/mp4","X-Upload-Content-Length":String(file.size)},
+      body:JSON.stringify({name:(anotador+"_"+Date.now()).replace(/[^\w.-]+/g,"_")+".mp4"})});
+    if(!initRes.ok)throw new Error("No se pudo iniciar la subida a Drive");
+    const uploadUrl=initRes.headers.get("Location");
+    if(!uploadUrl)throw new Error("Drive no devolvió URL de subida");
+
+    const uploaded=await xhrPut(uploadUrl,file,pct=>golSetProg(Math.round(pct)));
+    const fileId=uploaded.id;
+    if(!fileId)throw new Error("Drive no devolvió el id del archivo");
+
+    btn.textContent="Compartiendo…";golSetProg(100,"Compartiendo…");
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,{
+      method:"POST",headers:{"Authorization":"Bearer "+accessToken,"Content-Type":"application/json"},
+      body:JSON.stringify({role:"reader",type:"anyone"})});
+
+    const {error}=await SB.from("goles").insert({owner:ME,anotador,comentario:comentario||null,drive_file_id:fileId,size_bytes:file.size});
+    if(error)throw error;
+
+    $("golFile").value="";$("golComent").value="";$("golProg").hidden=true;
+    await sbLoadGoles();toast("Gol subido");
+  }catch(err){toast(err.message==="upload_failed_403"?"Se llegó al límite de espacio":"No se pudo subir el gol");}
+  finally{btn.disabled=false;btn.textContent="Subir gol";}});
 async function initCloud(){
   if(!window.claude||!window.claude.use){initSupa();return;}
   try{DB=await window.claude.use("db");USER=await window.claude.use("user");}catch(e){DB=null;}
@@ -1654,9 +1693,10 @@ function embedUrl(link){
     if(dm)return "https://drive.google.com/file/d/"+dm[1]+"/preview";
     return null;}
   catch(e){return null;}}
-function golCard(g){const e=embedUrl(g.link);
+function golCard(g){
+  const e=g.drive_file_id?("https://drive.google.com/file/d/"+g.drive_file_id+"/preview"):(g.link?embedUrl(g.link):null);
   const vid=e?`<iframe src="${esc(e)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`
-    :`<a class="gollink" href="${esc(g.link)}" target="_blank" rel="noopener">▶ Ver video</a>`;
+    :`<a class="gollink" href="${esc(g.link||"#")}" target="_blank" rel="noopener">▶ Ver video</a>`;
   const fecha=g.creado?new Date(g.creado).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"}):"";
   const quien=NAMES[g.owner]||"alguien del club";
   return `<div class="golcard"><div class="golvid">${vid}</div><div class="golbody">
@@ -1672,7 +1712,7 @@ function renderGoles(){const grid=$("golGrid");$("tbGoles").textContent=GOLES.le
     if(b.dataset.armed){const id=b.dataset.golx;cloudWrite(async()=>{const {error}=await SB.from("goles").delete().eq("id",id);if(error)throw error;await sbLoadGoles();});}
     else{b.dataset.armed="1";b.textContent="¿Borrar?";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar";}},2500);}}));}
 async function sbLoadGoles(){if(MODE!=="supa")return;
-  const {data,error}=await SB.from("goles").select("id,owner,anotador,comentario,link,creado").order("creado",{ascending:false});
+  const {data,error}=await SB.from("goles").select("id,owner,anotador,comentario,link,drive_file_id,size_bytes,creado").order("creado",{ascending:false});
   if(error){toast("No se pudieron leer los goles");return;}
   GOLES=data||[];
   const ids=[...new Set(GOLES.map(g=>g.owner))].filter(id=>!NAMES[id]);
@@ -1738,6 +1778,3 @@ renderGroupNav();
 (function(){let t=(location.hash||"").replace("#","");if(!TABS.includes(t)){try{t=localStorage.getItem("pc27.tab")||"";}catch(e){t="";}}showTab(t);})();
 })();
 </script>
-
-</body>
-</html>
