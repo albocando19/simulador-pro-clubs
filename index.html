@@ -34,7 +34,15 @@ button,select,input,textarea{font:inherit;color:inherit}
 
 header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
-.bar-in{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:12px 24px;align-items:center}
+.bar-in{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto auto;gap:12px 24px;align-items:center}
+.acctbar{position:relative}
+.acctbtn{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.acctpop{position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:14px;width:280px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:50}
+.acctpop .line{flex-wrap:wrap}
+.acct{display:flex;flex-direction:column;gap:8px}
+.acct>div:first-child{display:flex;flex-direction:column;gap:2px}
+.acct small{color:var(--muted);font-size:12px}
 .brand{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.01em;line-height:1;text-transform:uppercase}
 .brand small{display:block;font-family:var(--body);font-weight:500;font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-top:4px}
 .controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
@@ -454,6 +462,9 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
   aside{position:static}
   .bar-in{grid-template-columns:1fr}
   .budget{align-items:stretch}
+  .acctbar{justify-self:stretch}
+  .acctbtn{justify-content:center;width:100%}
+  .acctpop{left:0;right:0;width:auto}
 }
 @media (max-width:560px){
   .row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n s" "t c";gap:4px 10px}
@@ -549,6 +560,10 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       <div class="fig num" id="budgetFig">0 <span>/ 1419 AP</span></div>
       <div class="meter" id="meter"><i style="width:0"></i></div>
       <div class="note num" id="budgetNote"></div>
+    </div>
+    <div class="acctbar" id="acctBar" hidden>
+      <button type="button" class="btn acctbtn" id="acctBtn">Entrar</button>
+      <div class="acctpop" id="acctPop" hidden><div id="acctBox"></div></div>
     </div>
   </div>
 </header>
@@ -729,7 +744,6 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
 
   <div class="panel" id="p-builds" role="tabpanel" aria-labelledby="t-builds" hidden>
     <div class="inner">
-      <section class="card acctcard" id="acctCard" hidden><h3>Cuenta del club</h3><div id="acctBox"></div></section>
       <div class="buildgrid">
         <section class="card"><h3>Mis builds <span class="chip" id="cloudChip">En este navegador</span></h3>
           <div class="saves">
@@ -1724,9 +1738,11 @@ function renderGolesGate(){const cloud=MODE==="supa"&&!readOnly;
   if(SBNAME)$("golAutor").value=$("golAutor").value||SBNAME;}
 
 // Tarjeta de cuenta (solo con Supabase)
-function renderAccount(){const box=$("acctBox"),card=$("acctCard");
-  if(MODE==="claude"||!SB){card.hidden=true;return;}card.hidden=false;
-  if(!SBUSER){box.innerHTML=`<p class="hint">Entrá con tu mail para guardar tus builds en la nube y ver los del club. Te llega un link: lo abrís y listo, sin contraseña.</p>
+function acctPopOpen(v){$("acctPop").hidden=!v;}
+function renderAccount(){const box=$("acctBox"),bar=$("acctBar"),btn=$("acctBtn");
+  if(MODE==="claude"||!SB){bar.hidden=true;return;}bar.hidden=false;
+  if(!SBUSER){btn.textContent="Entrar";
+    box.innerHTML=`<p class="hint">Entrá con tu mail para guardar tus builds en la nube y ver los del club. Te llega un link: lo abrís y listo, sin contraseña.</p>
     <form class="line" id="loginForm"><input type="email" id="loginMail" placeholder="tu@mail.com" required autocomplete="email"><button class="btn primary" type="submit" id="loginBtn">Mandarme el link</button></form>
     ${authMsg?`<p class="hint ${authMsg.startsWith("!")?"warn-txt":"okmsg"}">${esc(authMsg.replace(/^!/,""))}</p>`:""}`;
     $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const email=$("loginMail").value.trim();if(!email)return;
@@ -1735,22 +1751,28 @@ function renderAccount(){const box=$("acctBox"),card=$("acctCard");
       const {error}=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:redirect}});
       authMsg=error?(/rate|limit|seconds/i.test(error.message)?"!Se mandaron muchos mails seguidos. Esperá un rato y probá de nuevo.":"!No se pudo mandar el mail: "+error.message)
         :`Listo: revisá ${email} (y la carpeta de spam) y abrí el link desde este mismo navegador.`;
-      renderAccount();});
+      renderAccount();acctPopOpen(true);});
     return;}
   const mail=esc(SBUSER.email||"");
-  if(!SBMEMBER){box.innerHTML=`<p class="hint warn-txt">Entraste como ${mail}, pero ese mail no está en la lista del club. Pedile al dueño del club que lo agregue y después tocá "Volver a probar".</p>
+  if(!SBMEMBER){btn.textContent="⚠ "+mail;
+    box.innerHTML=`<p class="hint warn-txt">Entraste como ${mail}, pero ese mail no está en la lista del club. Pedile al dueño del club que lo agregue y después tocá "Volver a probar".</p>
     <div class="line"><button class="btn" type="button" id="retryBtn">Volver a probar</button><button class="btn" type="button" id="logoutBtn">Salir</button></div>`;
     $("retryBtn").addEventListener("click",()=>{sessionUid=undefined;SB.auth.getSession().then(r=>handleSession(r.data.session));});
     $("logoutBtn").addEventListener("click",()=>SB.auth.signOut());return;}
-  if(!SBNAME){box.innerHTML=`<p class="hint">¿Cómo te llaman en el club? Es el nombre que van a ver los demás en tus builds.</p>
+  if(!SBNAME){btn.textContent="Elegí tu nombre";
+    box.innerHTML=`<p class="hint">¿Cómo te llaman en el club? Es el nombre que van a ver los demás en tus builds.</p>
     <form class="line" id="nameForm"><input type="text" id="nameIn" maxlength="30" placeholder="Tu nombre o apodo" required><button class="btn primary" type="submit">Guardar</button></form>`;
     $("nameForm").addEventListener("submit",async e=>{e.preventDefault();const n=$("nameIn").value.trim().slice(0,30);if(!n)return;
       const {error}=await SB.from("perfiles").upsert({id:ME,nombre:n});if(error){toast("No se pudo guardar el nombre");return;}
-      SBNAME=n;NAMES[ME]=n;renderAccount();toast("Nombre guardado");});return;}
+      SBNAME=n;NAMES[ME]=n;renderAccount();toast("Nombre guardado");});
+    acctPopOpen(true);return;}
+  btn.textContent=SBNAME;
   box.innerHTML=`<div class="acct"><div><b>${esc(SBNAME)}</b><small>${mail}</small></div>
     <div class="line"><button class="btn" type="button" id="renameBtn">Cambiar nombre</button><button class="btn" type="button" id="logoutBtn">Salir</button></div></div>`;
-  $("renameBtn").addEventListener("click",()=>{SBNAME="";renderAccount();});
+  $("renameBtn").addEventListener("click",()=>{SBNAME="";renderAccount();acctPopOpen(true);});
   $("logoutBtn").addEventListener("click",()=>SB.auth.signOut());}
+$("acctBtn").addEventListener("click",()=>acctPopOpen($("acctPop").hidden));
+document.addEventListener("click",e=>{if(!$("acctBar").contains(e.target))acctPopOpen(false);});
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function load(s){if(!s||!BYID[s.arch])return false;const base=fresh(s.arch,s.level);
   Object.keys(base.v).forEach(k=>{const a=BYID[s.arch];if(s.v&&typeof s.v[k]==="number")base.v[k]=Math.max(a.S[k],Math.min(a.C[k],s.v[k]));});
