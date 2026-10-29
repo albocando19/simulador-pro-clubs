@@ -34,8 +34,8 @@ button,select,input,textarea{font:inherit;color:inherit}
 
 header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
-.bar-in{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto auto;gap:12px 24px;align-items:center}
-.acctbar{position:relative}
+.bar-in{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:12px 24px;align-items:center}
+.acctbar{position:absolute;right:16px;top:50%;transform:translateY(-50%);z-index:6}
 .acctbtn{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .acctpop{position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--line);
   border-radius:8px;padding:14px;width:280px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:50}
@@ -462,7 +462,7 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
   aside{position:static}
   .bar-in{grid-template-columns:1fr}
   .budget{align-items:stretch}
-  .acctbar{justify-self:stretch}
+  .acctbar{position:static;transform:none;margin-top:8px}
   .acctbtn{justify-content:center;width:100%}
   .acctpop{left:0;right:0;width:auto}
 }
@@ -561,10 +561,10 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       <div class="meter" id="meter"><i style="width:0"></i></div>
       <div class="note num" id="budgetNote"></div>
     </div>
-    <div class="acctbar" id="acctBar" hidden>
-      <button type="button" class="btn acctbtn" id="acctBtn">Entrar</button>
-      <div class="acctpop" id="acctPop" hidden><div id="acctBox"></div></div>
-    </div>
+  </div>
+  <div class="acctbar" id="acctBar" hidden>
+    <button type="button" class="btn primary acctbtn" id="acctBtn">Login</button>
+    <div class="acctpop" id="acctPop" hidden><div id="acctBox"></div></div>
   </div>
 </header>
 
@@ -1741,7 +1741,7 @@ function renderGolesGate(){const cloud=MODE==="supa"&&!readOnly;
 function acctPopOpen(v){$("acctPop").hidden=!v;}
 function renderAccount(){const box=$("acctBox"),bar=$("acctBar"),btn=$("acctBtn");
   if(MODE==="claude"||!SB){bar.hidden=true;return;}bar.hidden=false;
-  if(!SBUSER){btn.textContent="Entrar";
+  if(!SBUSER){btn.textContent="Login";
     box.innerHTML=`<p class="hint">Entrá con tu mail para guardar tus builds en la nube y ver los del club. Te llega un link: lo abrís y listo, sin contraseña.</p>
     <form class="line" id="loginForm"><input type="email" id="loginMail" placeholder="tu@mail.com" required autocomplete="email"><button class="btn primary" type="submit" id="loginBtn">Mandarme el link</button></form>
     ${authMsg?`<p class="hint ${authMsg.startsWith("!")?"warn-txt":"okmsg"}">${esc(authMsg.replace(/^!/,""))}</p>`:""}`;
