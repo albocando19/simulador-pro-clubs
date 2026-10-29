@@ -1037,6 +1037,7 @@ if(!CLUB||!Array.isArray(CLUB.list))CLUB={budget:0,pBudget:0,bug:true,list:[]};
 // Nube. Dentro de Claude: la base de la página. En Netlify (o cualquier web): Supabase con login por mail.
 // Sin ninguna de las dos, todo queda en el navegador.
 const SB_URL="https://vrpogndxlecmxravqhiy.supabase.co",SB_KEY="sb_publishable_ZfE5CKZBMmeI61K2Kpq2HQ_0xAhK8EE";
+const GDRIVE_API_KEY="AIzaSyCy9Aw8-8SzszgRrmzAuisegnv_-iaPCjs";
 const SITE_URL="https://escabiadosbuild.netlify.app";
 let noPCol=false,MODE="local",DB=null,USER=null,ME=null,SB=null,SBUSER=null,SBMEMBER=false,SBNAME="",NAMES={},authMsg="",
   cloudAll=[],cloudReady=false,readOnly=false,writeQ=Promise.resolve(),budgetT=null,GOLES=[];
@@ -1738,7 +1739,7 @@ function embedUrl(link){
 function openGolLightbox(opts){
   const box=$("golLightboxVid");
   box.innerHTML=opts.driveId
-    ?`<video controls playsinline autoplay preload="auto" src="https://drive.google.com/uc?export=download&id=${encodeURIComponent(opts.driveId)}"></video>`
+    ?`<video controls playsinline autoplay preload="auto" src="https://www.googleapis.com/drive/v3/files/${encodeURIComponent(opts.driveId)}?alt=media&key=${GDRIVE_API_KEY}"></video>`
     :`<iframe src="${esc(opts.embedUrl)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
   $("golLightbox").hidden=false;}
 function closeGolLightbox(){$("golLightbox").hidden=true;$("golLightboxVid").innerHTML="";}
