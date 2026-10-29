@@ -470,6 +470,7 @@ textarea{width:100%;min-height:64px;background:var(--sunk);border:1px solid var(
 .gollightbox[hidden]{display:none}
 .gollightbox-inner{position:relative;width:min(960px,100%,calc((100vh - 140px) * 16 / 9));aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden}
 .gollightbox-inner iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.gollightbox-inner video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 .gollightbox-close{position:absolute;top:-42px;right:0;background:none;border:0;color:#fff;font-size:30px;line-height:1;cursor:pointer;padding:4px 8px}
 @media (max-width:700px){.gollightbox{padding:60px 12px 24px}.gollightbox-close{top:-38px;font-size:26px}}
 @media (max-width:560px){.slots{grid-template-columns:1fr}.accgrid{grid-template-columns:1fr}.tabs button{font-size:16px;padding:10px 10px 9px}}
@@ -1734,20 +1735,29 @@ function embedUrl(link){
     if(dm)return "https://drive.google.com/file/d/"+dm[1]+"/preview";
     return null;}
   catch(e){return null;}}
-function openGolLightbox(src){
-  $("golLightboxVid").innerHTML=`<iframe src="${esc(src)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
+function openGolLightbox(opts){
+  const box=$("golLightboxVid");
+  box.innerHTML=opts.driveId
+    ?`<video controls playsinline autoplay preload="auto" src="https://drive.google.com/uc?export=download&id=${encodeURIComponent(opts.driveId)}"></video>`
+    :`<iframe src="${esc(opts.embedUrl)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
   $("golLightbox").hidden=false;}
 function closeGolLightbox(){$("golLightbox").hidden=true;$("golLightboxVid").innerHTML="";}
 $("golLightboxClose").addEventListener("click",closeGolLightbox);
 $("golLightbox").addEventListener("click",e=>{if(e.target.id==="golLightbox")closeGolLightbox();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeGolLightbox();});
 function golCard(g){
-  const e=g.drive_file_id?("https://drive.google.com/file/d/"+g.drive_file_id+"/preview"):(g.link?embedUrl(g.link):null);
-  const vid=e?`<iframe src="${esc(e)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" tabindex="-1" style="pointer-events:none"></iframe>
-    <button type="button" class="golexpand" data-golexpand="${esc(e)}" aria-label="Ver video grande">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-    </button>`
-    :`<a class="gollink" href="${esc(g.link||"#")}" target="_blank" rel="noopener">▶ Ver video</a>`;
+  const driveId=g.drive_file_id||null;
+  const fallback=driveId?null:(g.link?embedUrl(g.link):null);
+  const vid=driveId
+    ?`<button type="button" class="golexpand" data-golid="${esc(driveId)}" aria-label="Ver video grande">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>`
+    :fallback
+      ?`<iframe src="${esc(fallback)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" tabindex="-1" style="pointer-events:none"></iframe>
+        <button type="button" class="golexpand" data-golembed="${esc(fallback)}" aria-label="Ver video grande">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>`
+      :`<a class="gollink" href="${esc(g.link||"#")}" target="_blank" rel="noopener">▶ Ver video</a>`;
   const fecha=g.creado?new Date(g.creado).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"}):"";
   const quien=NAMES[g.owner]||"alguien del club";
   return `<div class="golcard"><div class="golvid">${vid}</div><div class="golbody">
@@ -1759,7 +1769,8 @@ function golCard(g){
 function renderGoles(){const grid=$("golGrid");$("tbGoles").textContent=GOLES.length||"";
   $("golEmpty").hidden=!!GOLES.length;
   grid.innerHTML=GOLES.map(golCard).join("");
-  grid.querySelectorAll("[data-golexpand]").forEach(b=>b.addEventListener("click",()=>openGolLightbox(b.dataset.golexpand)));
+  grid.querySelectorAll("[data-golid]").forEach(b=>b.addEventListener("click",()=>openGolLightbox({driveId:b.dataset.golid})));
+  grid.querySelectorAll("[data-golembed]").forEach(b=>b.addEventListener("click",()=>openGolLightbox({embedUrl:b.dataset.golembed})));
   grid.querySelectorAll("[data-golx]").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.armed){const id=b.dataset.golx;cloudWrite(async()=>{const {error}=await SB.from("goles").delete().eq("id",id);if(error)throw error;await sbLoadGoles();});}
     else{b.dataset.armed="1";b.textContent="¿Borrar?";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar";}},2500);}}));}
