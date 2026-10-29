@@ -1248,9 +1248,12 @@ const EA_COLS=[
   {k:"gamesPlayed",l:"PJ"},
   {k:"winRate",l:"Victorias",f:v=>v||v===0?v+"%":"—"},
   {k:"goals",l:"Goles"},
+  {k:"golesProm",l:"Goles/PJ",f:v=>v||v===0?v.toFixed(1):"—"},
   {k:"assists",l:"Asist."},
+  {k:"asistProm",l:"Asist./PJ",f:v=>v||v===0?v.toFixed(1):"—"},
   {k:"shotSuccessRate",l:"Prec. tiro",f:v=>v||v===0?v+"%":"—"},
   {k:"passesMade",l:"Pases"},
+  {k:"pasesProm",l:"Pases/PJ",f:v=>v||v===0?v.toFixed(1):"—"},
   {k:"passSuccessRate",l:"Prec. pase",f:v=>v||v===0?v+"%":"—"},
   {k:"tacklesMade",l:"Entradas"},
   {k:"tackleSuccessRate",l:"Prec. entrada",f:v=>v||v===0?v+"%":"—"},
@@ -1294,11 +1297,6 @@ function renderEaStats(d){
     const racha=(+ov.wstreak>0)?`${ov.wstreak} seguidas`:((+ov.unbeatenstreak>0)?`${ov.unbeatenstreak} seguidas`:"—");
     const rachaLbl=(+ov.wstreak>0)?"Racha ganando":((+ov.unbeatenstreak>0)?"Racha invicto":"Racha");
     const stat=(v,l,cls)=>`<div class="stat${cls?" "+cls:""}"><b>${v}</b><span>${l}</span></div>`;
-    const memAll=(d.members&&d.members.members)||[];
-    const totAsist=memAll.reduce((s,m)=>s+(+m.assists||0),0);
-    const totPases=memAll.reduce((s,m)=>s+(+m.passesMade||0),0);
-    const pj=+ov.gamesPlayed||0;
-    const prom=(n)=>pj?(n/pj).toFixed(1):"—";
     $("eaRecord").innerHTML=`<div class="statgrid">
       ${stat(ov.gamesPlayed??"—","PJ")}
       ${stat(`${ov.wins??0}-${ov.ties??0}-${ov.losses??0}`,"G-E-P")}
@@ -1307,12 +1305,10 @@ function renderEaStats(d){
       ${stat(ov.skillRating??"—","Rating de habilidad")}
       ${stat(ov.bestDivision??"—","Mejor división")}
       ${stat(`${ov.promotions??0} / ${ov.relegations??0}`,"Ascensos / descensos")}
-      ${stat(prom(+ov.goals||0),"Goles por partido (prom.)")}
-      ${stat(prom(totAsist),"Asistencias por partido (prom.)")}
-      ${stat(prom(totPases),"Pases por partido (prom.)")}
     </div>`;}
   // Jugadores
   const mem=(d.members&&d.members.members)||[];
+  mem.forEach(m=>{const pj=+m.gamesPlayed||0;m.golesProm=pj?(+m.goals||0)/pj:0;m.asistProm=pj?(+m.assists||0)/pj:0;m.pasesProm=pj?(+m.passesMade||0)/pj:0;});
   if(mem.length){$("eaPlayersCard").hidden=false;EA_LAST_MEM=mem;eaRenderPlayers(mem);}
   // Partidos
   eaRenderMatchList("eaMatchesCard","eaMatches",d.matches||[],cid);
