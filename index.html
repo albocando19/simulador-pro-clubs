@@ -1294,6 +1294,11 @@ function renderEaStats(d){
     const racha=(+ov.wstreak>0)?`${ov.wstreak} seguidas`:((+ov.unbeatenstreak>0)?`${ov.unbeatenstreak} seguidas`:"—");
     const rachaLbl=(+ov.wstreak>0)?"Racha ganando":((+ov.unbeatenstreak>0)?"Racha invicto":"Racha");
     const stat=(v,l,cls)=>`<div class="stat${cls?" "+cls:""}"><b>${v}</b><span>${l}</span></div>`;
+    const memAll=(d.members&&d.members.members)||[];
+    const totAsist=memAll.reduce((s,m)=>s+(+m.assists||0),0);
+    const totPases=memAll.reduce((s,m)=>s+(+m.passesMade||0),0);
+    const pj=+ov.gamesPlayed||0;
+    const prom=(n)=>pj?(n/pj).toFixed(1):"—";
     $("eaRecord").innerHTML=`<div class="statgrid">
       ${stat(ov.gamesPlayed??"—","PJ")}
       ${stat(`${ov.wins??0}-${ov.ties??0}-${ov.losses??0}`,"G-E-P")}
@@ -1302,6 +1307,9 @@ function renderEaStats(d){
       ${stat(ov.skillRating??"—","Rating de habilidad")}
       ${stat(ov.bestDivision??"—","Mejor división")}
       ${stat(`${ov.promotions??0} / ${ov.relegations??0}`,"Ascensos / descensos")}
+      ${stat(prom(+ov.goals||0),"Goles por partido (prom.)")}
+      ${stat(prom(totAsist),"Asistencias por partido (prom.)")}
+      ${stat(prom(totPases),"Pases por partido (prom.)")}
     </div>`;}
   // Jugadores
   const mem=(d.members&&d.members.members)||[];
