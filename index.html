@@ -468,7 +468,7 @@ textarea{width:100%;min-height:64px;background:var(--sunk);border:1px solid var(
 .golexpand svg{width:46px;height:46px;opacity:.92;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
 .gollightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:48px 24px}
 .gollightbox[hidden]{display:none}
-.gollightbox-inner{position:relative;width:min(960px,100%);aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden}
+.gollightbox-inner{position:relative;width:min(960px,100%,calc((100vh - 140px) * 16 / 9));aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden}
 .gollightbox-inner iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .gollightbox-close{position:absolute;top:-42px;right:0;background:none;border:0;color:#fff;font-size:30px;line-height:1;cursor:pointer;padding:4px 8px}
 @media (max-width:700px){.gollightbox{padding:60px 12px 24px}.gollightbox-close{top:-38px;font-size:26px}}
@@ -480,7 +480,7 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
   aside{position:static}
   .bar-in{grid-template-columns:1fr}
   .budget{align-items:stretch}
-  .acctbar{position:static;transform:none;margin-top:8px}
+  .acctbar{position:relative;transform:none;margin-top:8px}
   .acctbtn{justify-content:center;width:100%}
   .acctpop{left:0;right:0;width:auto}
 }
