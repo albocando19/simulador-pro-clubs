@@ -701,6 +701,9 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
     <div class="inner">
       <section class="card mastsum"><h3>Lo que suman tus maestrías</h3><div class="fx" id="mastSum"></div>
         <p class="hint">Cada arquetipo que subas da +1 permanentes a todos tus arquetipos: dos atributos en el nivel 10, uno en el 30 y otro en el 55. No cuestan AP.</p></section>
+      <section class="card"><h3>Guía de bonos por arquetipo <span class="h3n">para decidir qué maxear</span></h3>
+        <p class="hint">Todos los arquetipos y sus bonos, para comparar de una y saber cuál conviene subir a nivel 55 primero.</p>
+        <div class="tbl" id="mastGuide"></div></section>
       <div class="mastgrid" id="mast"></div>
     </div>
   </div>
@@ -1415,6 +1418,10 @@ function renderMiles(){const a=arch();
     [50,"Mejora de carta · +63 AP"],[55,`Segundo dorado: ${a.g2} · ranura 4 · +1 ${NAME[a.m[0]]}`]];
   $("miles").innerHTML=ms.map(([l,t])=>`<li class="${S.level>=l?"done":"todo"}"><span class="l">${l}</span><span>${S.level>=l?"✓ ":""}${t}</span></li>`).join("");}
 
+function renderMastGuide(){const sh=k=>NAME[k].replace(" (GK)","");
+  $("mastGuide").innerHTML=`<table><thead><tr><th>Arquetipo</th><th>Nivel 10</th><th>Nivel 30</th><th>Nivel 55</th></tr></thead><tbody>${
+    A.map(a=>`<tr><td><b>${esc(a.n)}</b><br><small>${esc(a.pos)}</small></td><td>+1 ${esc(sh(a.m[0]))}<br>+1 ${esc(sh(a.m[1]))}</td><td>+1 ${esc(sh(a.m[1]))}</td><td>+1 ${esc(sh(a.m[0]))}</td></tr>`).join("")
+  }</tbody></table>`;}
 function renderMast(){const box=$("mast"),sh=k=>NAME[k].replace(" (GK)","");
   box.innerHTML=A.map(a=>{const own=a.id===S.arch;const lv=own?S.level:(S.mast[a.id]||0);
     const steps=[[10,`+1 ${sh(a.m[0])}, +1 ${sh(a.m[1])}`],[30,`+1 ${sh(a.m[1])}`],[55,`+1 ${sh(a.m[0])}`]];
@@ -1845,6 +1852,7 @@ $("importBtn").addEventListener("click",()=>{try{const s=JSON.parse(decodeURICom
 let tt;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
 
 buildArchSelect();
+renderMastGuide();
 $("arch").addEventListener("change",e=>{S=fresh(e.target.value,S.level);renderGroups();update();});
 $("level").addEventListener("input",e=>{S.level=+e.target.value;update();});
 let armed=false;$("resetBtn").addEventListener("click",e=>{if(!armed){armed=true;e.target.textContent="¿Seguro?";setTimeout(()=>{armed=false;e.target.textContent="Reiniciar";},2500);return;}
