@@ -762,7 +762,7 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       <section class="card" id="eaPlayersCard" hidden><h3>Jugadores</h3><p class="hint">Tocá un encabezado para ordenar. Por defecto, de mejor a peor rating.</p><div class="tbl" id="eaPlayers" style="overflow-x:auto"></div></section>
       <section class="card" id="eaLeagueStatsCard" hidden><h3>Liga <span class="h3n">solo de los partidos de liga de abajo</span></h3><div id="eaLeagueRecord"></div><div class="tbl" id="eaLeaguePlayers" style="overflow-x:auto;margin-top:10px"></div></section>
       <section class="card" id="eaMatchesCard" hidden><h3>Últimos partidos de liga</h3><div id="eaMatches"></div></section>
-      <section class="card" id="eaPlayoffStatsCard" hidden><h3>Playoffs <span class="h3n">solo de los partidos de playoffs de abajo</span></h3><div id="eaPlayoffRecord"></div><div class="tbl" id="eaPlayoffPlayers" style="overflow-x:auto;margin-top:10px"></div></section>
+      <section class="card" id="eaPlayoffStatsCard" hidden><h3>Playoffs <span class="h3n">acumulado de todos los playoffs registrados</span></h3><div id="eaPlayoffRecord"></div><div class="tbl" id="eaPlayoffPlayers" style="overflow-x:auto;margin-top:10px"></div></section>
       <section class="card" id="eaPlayoffsCard" hidden><h3>Últimos partidos de playoffs</h3><div id="eaPlayoffs"></div></section>
       <details id="eaRawBox" hidden><summary class="hint">Ver datos crudos (por si algo no se ve bien)</summary><pre id="eaRaw" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></details>
     </div>
@@ -1324,7 +1324,7 @@ function renderEaStats(d){
   if((d.playoffs||[]).length){$("eaPlayoffStatsCard").hidden=false;renderCompStats("eaPlayoffRecord","eaPlayoffPlayers",d.playoffs,cid);}
   else $("eaPlayoffStatsCard").hidden=true;
   // Playoffs
-  eaRenderMatchList("eaPlayoffsCard","eaPlayoffs",d.playoffs||[],cid);
+  eaRenderMatchList("eaPlayoffsCard","eaPlayoffs",(d.playoffs||[]).slice(0,20),cid);
 }
 function compStats(matches,cid){
   let w=0,t=0,l=0,gf=0,ga=0;const pl={};
