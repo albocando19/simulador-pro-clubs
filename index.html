@@ -760,8 +760,10 @@ footer{max-width:1180px;margin:8px auto 0;font-size:12px;color:var(--muted)}
       </section>
       <section class="card" id="eaRecordCard" hidden><h3>Récord del club</h3><div id="eaRecord"></div></section>
       <section class="card" id="eaPlayersCard" hidden><h3>Jugadores</h3><p class="hint">Tocá un encabezado para ordenar. Por defecto, de mejor a peor rating.</p><div class="tbl" id="eaPlayers" style="overflow-x:auto"></div></section>
-      <section class="card" id="eaMatchesCard" hidden><h3>Últimos partidos</h3><div id="eaMatches"></div></section>
-      <section class="card" id="eaPlayoffsCard" hidden><h3>Playoffs</h3><div id="eaPlayoffs"></div></section>
+      <section class="card" id="eaLeagueStatsCard" hidden><h3>Liga <span class="h3n">solo de los partidos de liga de abajo</span></h3><div id="eaLeagueRecord"></div><div class="tbl" id="eaLeaguePlayers" style="overflow-x:auto;margin-top:10px"></div></section>
+      <section class="card" id="eaMatchesCard" hidden><h3>Últimos partidos de liga</h3><div id="eaMatches"></div></section>
+      <section class="card" id="eaPlayoffStatsCard" hidden><h3>Playoffs <span class="h3n">solo de los partidos de playoffs de abajo</span></h3><div id="eaPlayoffRecord"></div><div class="tbl" id="eaPlayoffPlayers" style="overflow-x:auto;margin-top:10px"></div></section>
+      <section class="card" id="eaPlayoffsCard" hidden><h3>Últimos partidos de playoffs</h3><div id="eaPlayoffs"></div></section>
       <details id="eaRawBox" hidden><summary class="hint">Ver datos crudos (por si algo no se ve bien)</summary><pre id="eaRaw" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></details>
     </div>
   </div>
@@ -1313,10 +1315,48 @@ function renderEaStats(d){
   const mem=(d.members&&d.members.members)||[];
   mem.forEach(m=>{const pj=+m.gamesPlayed||0;m.golesProm=pj?(+m.goals||0)/pj:0;m.asistProm=pj?(+m.assists||0)/pj:0;m.pasesProm=pj?(+m.passesMade||0)/pj:0;});
   if(mem.length){$("eaPlayersCard").hidden=false;EA_LAST_MEM=mem;eaRenderPlayers(mem);}
+  // Liga (solo partidos cargados)
+  if((d.matches||[]).length){$("eaLeagueStatsCard").hidden=false;renderCompStats("eaLeagueRecord","eaLeaguePlayers",d.matches,cid);}
+  else $("eaLeagueStatsCard").hidden=true;
   // Partidos
   eaRenderMatchList("eaMatchesCard","eaMatches",d.matches||[],cid);
+  // Playoffs (solo partidos cargados)
+  if((d.playoffs||[]).length){$("eaPlayoffStatsCard").hidden=false;renderCompStats("eaPlayoffRecord","eaPlayoffPlayers",d.playoffs,cid);}
+  else $("eaPlayoffStatsCard").hidden=true;
   // Playoffs
   eaRenderMatchList("eaPlayoffsCard","eaPlayoffs",d.playoffs||[],cid);
+}
+function compStats(matches,cid){
+  let w=0,t=0,l=0,gf=0,ga=0;const pl={};
+  (matches||[]).forEach(m=>{
+    const mio=m.clubs&&m.clubs[cid];if(!mio)return;
+    const g=+mio.goals||0,gag=+mio.goalsAgainst||0;
+    gf+=g;ga+=gag;
+    if(g>gag)w++;else if(g<gag)l++;else t++;
+    (m.players||[]).forEach(p=>{
+      const o=pl[p.name]||(pl[p.name]={name:p.name,pj:0,goals:0,assists:0,ratingSum:0,ratingN:0,mom:0,red:0});
+      o.pj++;o.goals+=+p.goals||0;o.assists+=+p.assists||0;
+      if(p.rating){o.ratingSum+=+p.rating;o.ratingN++;}
+      if(p.mom==="1")o.mom++;
+      o.red+=+p.redcards||0;
+    });
+  });
+  const players=Object.values(pl).map(o=>({...o,ratingAve:o.ratingN?o.ratingSum/o.ratingN:0}));
+  return {pj:w+t+l,w,t,l,gf,ga,players};
+}
+function renderCompStats(recBoxId,tblBoxId,matches,cid){
+  const s=compStats(matches,cid);
+  const stat=(v,l)=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+  $(recBoxId).innerHTML=s.pj?`<div class="statgrid">
+    ${stat(s.pj,"PJ")}
+    ${stat(`${s.w}-${s.t}-${s.l}`,"G-E-P")}
+    ${stat(`${s.gf}-${s.ga}`,"Goles a favor-en contra")}
+    ${stat(s.pj?Math.round(s.w/s.pj*100)+"%":"—","% de victorias")}
+  </div>`:`<p class="hint">Sin partidos cargados.</p>`;
+  const sorted=[...s.players].sort((a,b)=>b.ratingAve-a.ratingAve);
+  $(tblBoxId).innerHTML=sorted.length?`<table><thead><tr><th>Jugador</th><th>PJ</th><th>Goles</th><th>Asist.</th><th>Rating</th><th>MOTM</th><th>Rojas</th></tr></thead><tbody>${
+    sorted.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.pj}</td><td>${p.goals}</td><td>${p.assists}</td><td>${p.ratingAve?p.ratingAve.toFixed(1):"—"}</td><td>${p.mom}</td><td>${p.red}</td></tr>`).join("")
+  }</tbody></table>`:"";
 }
 function eaRenderMatchList(cardId,boxId,matches,cid){
   if(!matches.length){$(cardId).hidden=true;return;}
@@ -1355,7 +1395,7 @@ $("clubSubtabs").addEventListener("click",e=>{
 function renderEaTab(){
   eaRenderSubtabs();
   const cur=EA_CLUBS[EA_ACTIVE],d=cur&&cur.data;
-  if(!d){["eaRecordCard","eaPlayersCard","eaMatchesCard","eaPlayoffsCard","eaRawBox"].forEach(id=>$(id).hidden=true);
+  if(!d){["eaRecordCard","eaPlayersCard","eaLeagueStatsCard","eaMatchesCard","eaPlayoffStatsCard","eaPlayoffsCard","eaRawBox"].forEach(id=>$(id).hidden=true);
     $("eaStatus").textContent=`Todavía no hay datos cargados para ${cur?esc(cur.name):"este club"}.`;return;}
   renderEaStats(d);
   $("eaStatus").textContent="Última actualización: "+(d.at?new Date(d.at).toLocaleString("es-AR"):"—");}
